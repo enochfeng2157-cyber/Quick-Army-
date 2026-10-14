@@ -1,0 +1,3469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#10151d" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
+<title>Quick Army: Redline Assault</title>
+<style>
+  :root {
+    --blue: #4aa3ff;
+    --blue2: #78c2ff;
+    --red: #ef5350;
+    --dark: #10151d;
+    --panel: rgba(12, 17, 24, .9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #090d12;
+    color: #eaf3ff;
+    font-family: Arial, Helvetica, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  button, canvas, #hud { user-select: none; -webkit-user-select: none; }
+
+  #game {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    cursor: crosshair;
+    background: #17212b;
+  }
+
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .panel {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid #334352;
+    border-radius: 10px;
+    box-shadow: 0 6px 25px rgba(0,0,0,.35);
+    backdrop-filter: blur(4px);
+  }
+
+  #topbar {
+    left: 16px;
+    top: 14px;
+    padding: 12px 15px;
+    width: 285px;
+  }
+
+  #title {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    color: #fff;
+    margin-bottom: 5px;
+  }
+
+  #stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    font-size: 11px;
+  }
+
+  .stat-label { color: #93a4b6; }
+  .stat-value { color: #fff; font-weight: 700; }
+
+  #zoomStatus {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    background: rgba(12,17,24,.82);
+    border: 1px solid #425366;
+    color: #bfd0df;
+    font-size: 11px;
+  }
+
+  #healthWrap {
+    height: 9px;
+    background: #342126;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 7px;
+    border: 1px solid #5b3137;
+  }
+
+  #health {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #e34248, #ff7e67);
+    transition: width .12s;
+  }
+
+
+  #heroHpWrap {
+    position: absolute;
+    left: 50%;
+    top: auto;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(430px, 56vw);
+    padding: 7px 9px;
+    border: 1px solid #405365;
+    border-radius: 9px;
+    background: rgba(10,16,23,.88);
+    z-index: 25;
+  }
+
+  #heroHpLabel { color: #fff0f0; font: 900 12px Arial; letter-spacing: .8px; text-align: center; }
+  #heroHpTrack { height: 18px; margin-top: 5px; overflow: hidden; border: 1px solid #ff9b8e; border-radius: 99px; background: #301b22; box-shadow: inset 0 0 5px rgba(0,0,0,.5); }
+  #heroHpBar { height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg,#e3444c,#ff9a67); transition: width .12s; }
+
+
+  #help {
+    right: 16px;
+    top: 14px;
+    padding: 12px 14px;
+    width: 238px;
+    line-height: 1.55;
+    color: #bfd0df;
+    font-size: 12px;
+  }
+
+  #help strong { color: #fff; }
+
+  #message {
+    position: absolute;
+    left: 50%;
+    top: 23px;
+    transform: translateX(-50%);
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: rgba(16, 21, 29, .84);
+    border: 1px solid #405365;
+    color: #fff;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+
+  #message.show { opacity: 1; }
+
+  #campBtn {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 82px;
+    transform: translateX(-50%);
+    z-index: 40;
+    padding: 10px 16px;
+    border: 2px solid #75d5ff;
+    border-radius: 10px;
+    color: #e7f8ff;
+    background: rgba(24, 86, 122, .94);
+    font: 900 13px Arial;
+    letter-spacing: .3px;
+    pointer-events: auto;
+  }
+
+  #campBtn.show { display: block; }
+
+  #bossWrap {
+    display: none;
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    width: min(430px, 46vw);
+    z-index: 35;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  #bossLabel { color: #ffd1a0; font: 900 12px Arial; letter-spacing: 1px; text-shadow: 0 2px 3px #000; }
+  #bossTrack { height: 13px; margin-top: 4px; overflow: hidden; border: 1px solid #ffb05f; border-radius: 99px; background: #24151a; }
+  #bossHealth { height: 100%; width: 100%; background: linear-gradient(90deg,#ef4e54,#ff9b4b); }
+
+  #hospitalHint {
+    position: absolute;
+    left: 50%;
+    bottom: 54px;
+    transform: translateX(-50%);
+    background: rgba(11, 17, 24, .92);
+    border: 1px solid #74d6a0;
+    color: #d8ffe8;
+    border-radius: 8px;
+    padding: 9px 15px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 20;
+  }
+
+  #hospitalHint.show { opacity: 1; }
+
+  #minimap {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 150px;
+    height: 220px;
+    border: 1px solid #425366;
+    border-radius: 7px;
+    background: rgba(9, 14, 20, .8);
+    z-index: 30;
+    pointer-events: auto;
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  #fullscreenBtn {
+    display: none;
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 100001;
+    border: 1px solid #82c8ff;
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: #eaf6ff;
+    background: rgba(12, 24, 38, .9);
+    font: 800 12px Arial;
+  }
+
+  #orientationPrompt {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 28px;
+    color: #eaf6ff;
+    background: rgba(5, 10, 16, .94);
+    font: 800 20px/1.45 Arial;
+    pointer-events: auto;
+  }
+
+  #mobileControls {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+    touch-action: none;
+  }
+
+  .touchPad {
+    position: absolute;
+    bottom: 34px;
+    width: 150px;
+    height: 150px;
+    border: 3px solid rgba(210,240,255,.9);
+    border-radius: 50%;
+    background: rgba(15,32,48,.58);
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  #movePad::after {
+    position: absolute;
+    top: -23px;
+    left: 0;
+    width: 100%;
+    color: rgba(225,243,255,.8);
+    font: 700 11px Arial, sans-serif;
+    text-align: center;
+    letter-spacing: .8px;
+  }
+
+  #movePad::after { content: "MOVE + AIM"; }
+
+  #movePad { left: 32px; }
+
+  .stickKnob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 64px;
+    height: 64px;
+    margin: -32px 0 0 -32px;
+    border-radius: 50%;
+    background: rgba(91,174,241,.86);
+    border: 2px solid #d5efff;
+    pointer-events: none;
+  }
+
+  #fireBtn, #restartBtn {
+    position: absolute;
+    right: 39px;
+    border: 2px solid #ffd77a;
+    border-radius: 50%;
+    color: #fff4c4;
+    background: rgba(151,54,48,.88);
+    font-weight: 900;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  #fireBtn {
+    bottom: 220px;
+    width: 100px;
+    height: 100px;
+    font-size: 17px;
+    box-shadow: 0 0 0 4px rgba(90,20,20,.55), 0 5px 18px rgba(0,0,0,.5);
+  }
+
+  #sprintBtn {
+    display: none;
+    position: absolute;
+    right: 155px;
+    bottom: 24px;
+    width: 78px;
+    height: 78px;
+    border: 2px solid #b9f28b;
+    border-radius: 50%;
+    color: #efffdc;
+    background: rgba(48,125,61,.9);
+    font: 900 13px Arial;
+    pointer-events: auto;
+    touch-action: none;
+    box-shadow: 0 0 0 4px rgba(35,75,35,.55), 0 5px 18px rgba(0,0,0,.5);
+  }
+
+  #sprintBtn.active {
+    background: rgba(119,164,43,.98);
+    border-color: #fff4a8;
+    transform: scale(1.06);
+  }
+
+  #restartBtn {
+    display: none;
+    right: 50%;
+    bottom: 28%;
+    transform: translateX(50%);
+    width: 150px;
+    height: 48px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  #restartBtn.show { display: block; }
+
+  @media (pointer: coarse) {
+    #fullscreenBtn { display: block; }
+    #mobileControls { display: block; }
+    #help { display: none; }
+    #topbar { width: 205px; padding: 8px 9px; transform: scale(.78); transform-origin: top left; }
+    #title { font-size: 12px; margin-bottom: 3px; }
+    #stats { font-size: 10px; gap: 3px 7px; }
+    #healthWrap { height: 7px; margin-top: 5px; }
+    #heroHpWrap { left: 50%; top: auto; bottom: 12px; width: min(330px, 58vw); }
+    #minimap { right: 12px; top: 12px; bottom: auto; width: 115px; height: 170px; }
+    #fireBtn { bottom: 24px; }
+    #sprintBtn { display: block; right: 138px; bottom: 24px; width: 78px; height: 78px; }
+    #campBtn { top: 190px; }
+    #bossWrap { bottom: 18px; width: 58vw; }
+    #hospitalHint { bottom: 165px; max-width: 90vw; text-align: center; }
+  }
+
+  @media (pointer: coarse) and (orientation: portrait) {
+    #orientationPrompt { display: flex; }
+  }
+
+  @media (max-width: 500px) {
+    .touchPad { width: 110px; height: 110px; bottom: 20px; }
+    #movePad { left: 12px; }
+    .stickKnob { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
+    #fireBtn { right: 20px; bottom: 20px; width: 78px; height: 78px; font-size: 14px; }
+  }
+
+  /* Compact HUD for narrow browser previews and short landscape screens. */
+  @media (max-width: 600px) {
+    #topbar {
+      left: 8px;
+      top: 8px;
+      width: 205px;
+      max-width: 205px;
+      padding: 8px 10px;
+    }
+    #title {
+      margin-bottom: 3px;
+      font-size: 12px;
+      letter-spacing: .25px;
+    }
+    #stats {
+      gap: 3px 9px;
+      font-size: 10px;
+    }
+    #healthWrap { height: 9px; margin-top: 6px; }
+    #heroHpWrap {
+      left: 50%;
+      top: auto;
+      bottom: 10px;
+      width: 185px;
+      padding: 5px 7px;
+    }
+    #heroHpLabel { font-size: 10px; }
+    #heroHpTrack { height: 12px; margin-top: 3px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="orientationPrompt">Rotate your phone sideways for landscape play.<br><small>Tap FULLSCREEN to hide the browser bar.</small></div>
+<button id="fullscreenBtn" type="button">⛶ FULLSCREEN</button>
+
+<div id="hud">
+  <div id="topbar" class="panel">
+    <div id="title">QUICK ARMY: REDLINE ASSAULT</div>
+    <div id="stats">
+      <div><span class="stat-label">Sector:</span> <span id="sector" class="stat-value">Lower Front</span></div>
+      <div><span class="stat-label">Army:</span> <span id="army" class="stat-value">0 / 5</span></div>
+      <div><span class="stat-label">Kills:</span> <span id="kills" class="stat-value">0</span></div>
+    </div>
+    <div id="healthWrap"><div id="health"></div></div>
+  </div>
+
+  <div id="heroHpWrap">
+    <div id="heroHpLabel">HERO HP · 450 / 450</div>
+    <div id="heroHpTrack"><div id="heroHpBar"></div></div>
+  </div>
+
+  <div id="help" class="panel">
+    <strong>Controls</strong><br>
+    WASD / Arrow keys — move<br>
+    Move joystick — move and aim<br>
+    Hold FIRE — shoot<br>
+    Hold right mouse — sprint faster; squad-wipe sprint can shoot<br>
+    Hold SPACE — shoot<br>
+    Stand beside the blue tent — train soldiers<br>
+    Push north and destroy the red HQ.
+  </div>
+
+  <div id="message"></div>
+  <div id="hospitalHint"></div>
+  <div id="zoomStatus">Zoom: 100% · Mouse wheel</div>
+  <canvas id="minimap"></canvas>
+  <button id="campBtn" type="button">TELEPORT TO NEXT CAMP [T]</button>
+  <div id="bossWrap">
+    <div id="bossLabel">TANK COMMANDER</div>
+    <div id="bossTrack"><div id="bossHealth"></div></div>
+  </div>
+</div>
+
+<div id="mobileControls">
+  <div id="movePad" class="touchPad"><div id="moveKnob" class="stickKnob"></div></div>
+  <button id="sprintBtn" type="button">SPRINT</button>
+  <button id="fireBtn" type="button">FIRE</button>
+  <button id="restartBtn" type="button">RESTART</button>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const mini = document.getElementById("minimap");
+const mctx = mini.getContext("2d");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function sfx(kind, volumeScale = 1) {
+  ensureAudio();
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const settings = {
+    playerShot: [220, 0.045, "square", .025, 90],
+    soldierShot: [300, 0.035, "square", .016, 70],
+    enemyShot: [130, 0.06, "sawtooth", .022, -35],
+    tankShot: [75, 0.18, "sawtooth", .06, -42],
+    bazookaShot: [92, 0.16, "sawtooth", .065, 170],
+    rocketExplosion: [48, 0.5, "sawtooth", .11, -38],
+    mineTrigger: [190, 0.22, "square", .045, -130],
+    hit: [95, 0.06, "square", .025, -55],
+    explosion: [62, 0.42, "sawtooth", .08, -48],
+    train: [420, 0.18, "triangle", .035, 180],
+    queue: [180, 0.12, "triangle", .025, -70],
+    level: [260, 0.32, "triangle", .04, 330],
+    heal: [520, 0.38, "sine", .045, 260],
+    death: [180, 0.45, "sawtooth", .045, -120]
+  }[kind];
+  if (!settings) return;
+  const [frequency, duration, type, volume, slide] = settings;
+  const oscillator = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, now);
+  oscillator.frequency.linearRampToValueAtTime(Math.max(20, frequency + slide), now + duration);
+  gain.gain.setValueAtTime(volume * volumeScale, now);
+  gain.gain.exponentialRampToValueAtTime(.001, now + duration);
+  oscillator.connect(gain).connect(audioCtx.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration);
+}
+
+addEventListener("pointerdown", ensureAudio, {once: true});
+addEventListener("keydown", ensureAudio, {once: true});
+
+async function enterMobilePresentation() {
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch (_) {}
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (_) {}
+}
+
+fullscreenBtn.addEventListener("click", enterMobilePresentation);
+document.addEventListener("fullscreenchange", () => {
+  fullscreenBtn.textContent = document.fullscreenElement ? "⛶ EXIT FULLSCREEN" : "⛶ FULLSCREEN";
+});
+
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth;
+  H = innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + "px";
+  canvas.style.height = H + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize);
+resize();
+
+const world = { w: 1800, h: 7600 };
+const tileSize = 80;
+const levels = [
+  {minY: 3500, maxY: 5900, name: "LEVEL 1 — PRISON LIBERATION"}
+];
+const enemyBorderY = levels[0].maxY;
+let currentLevel = 1;
+let campTeleportReady = false;
+let tankWaveStarted = false;
+const tileOwners = new Map();
+let lastPlayerTile = null;
+const keys = {};
+const mouse = { x: W / 2, y: H / 2, fire: false, sprint: false };
+let zoom = matchMedia("(pointer: coarse)").matches ? .68 : 1;
+const touch = {
+  moveActive: false, moveX: 0, moveY: 0,
+  firing: false, sprinting: false,
+  mobileMode: false,
+  aimX: 1,
+  aimY: 0
+};
+
+addEventListener("keydown", e => {
+  const key = e.key.toLowerCase();
+  keys[key] = true;
+  if (["arrowup","arrowdown","arrowleft","arrowright"," "].includes(key)) e.preventDefault();
+  if (key === "r" && (gameOver || victory)) {
+    e.preventDefault();
+    restartFromSavedProgress();
+    return;
+  }
+  if (key === "t" && campTeleportReady) {
+    e.preventDefault();
+    teleportToCamp();
+  }
+});
+addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+canvas.addEventListener("mousemove", e => {
+  const r = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - r.left;
+  mouse.y = e.clientY - r.top;
+});
+canvas.addEventListener("mousedown", e => {
+  if (e.button === 0) mouse.fire = true;
+  if (e.button === 2) mouse.sprint = true;
+});
+addEventListener("mouseup", e => {
+  if (e.button === 0) mouse.fire = false;
+  if (e.button === 2) mouse.sprint = false;
+});
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+canvas.addEventListener("wheel", e => {
+  if (touch.mobileMode) return;
+  zoom = clamp(zoom - e.deltaY * .001, .45, 1.25);
+  e.preventDefault();
+}, { passive: false });
+
+function panCameraFromMinimap(e) {
+  const rect = mini.getBoundingClientRect();
+  const nx = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+  const ny = clamp((e.clientY - rect.top) / rect.height, 0, 1);
+  const viewW = W / zoom;
+  const viewH = H / zoom;
+  const bounds = minimapBounds();
+  const levelHeight = bounds.maxY - bounds.minY;
+  camera.x = clamp(nx * world.w - viewW / 2, 0, Math.max(0, world.w - viewW));
+  camera.y = clamp(bounds.minY + ny * levelHeight - viewH / 2,
+    bounds.minY, Math.max(bounds.minY, bounds.maxY - viewH));
+  cameraManual = true;
+}
+
+let minimapPointerId = null;
+mini.addEventListener("pointerdown", e => {
+  minimapPointerId = e.pointerId;
+  mini.setPointerCapture(minimapPointerId);
+  panCameraFromMinimap(e);
+  e.preventDefault();
+});
+mini.addEventListener("pointermove", e => {
+  if (e.pointerId === minimapPointerId) panCameraFromMinimap(e);
+});
+function endMinimapDrag(e) {
+  if (e.pointerId === minimapPointerId) minimapPointerId = null;
+}
+mini.addEventListener("pointerup", endMinimapDrag);
+mini.addEventListener("pointercancel", endMinimapDrag);
+mini.addEventListener("click", e => {
+  // A simple click also jumps the camera; dragging is optional.
+  panCameraFromMinimap(e);
+  e.stopPropagation();
+});
+
+function bindMoveStick() {
+  const pad = document.getElementById("movePad");
+  const knob = document.getElementById("moveKnob");
+  let pointerId = null;
+
+  function update(e) {
+    const r = pad.getBoundingClientRect();
+    const max = r.width * .34;
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const length = Math.hypot(dx, dy) || 1;
+    const scale = Math.min(1, max / length);
+    touch.moveX = dx * scale / max;
+    touch.moveY = dy * scale / max;
+    if (Math.hypot(touch.moveX, touch.moveY) > .12) {
+      touch.aimX = touch.moveX;
+      touch.aimY = touch.moveY;
+    }
+    knob.style.transform = `translate(${dx * scale}px, ${dy * scale}px)`;
+  }
+
+  function end(e) {
+    if (pointerId !== e.pointerId) return;
+    pointerId = null;
+    touch.moveActive = false;
+    touch.moveX = touch.moveY = 0;
+    knob.style.transform = "translate(0, 0)";
+  }
+
+  pad.addEventListener("pointerdown", e => {
+    if (pointerId !== null) return;
+    pointerId = e.pointerId;
+    touch.mobileMode = true;
+    touch.moveActive = true;
+    pad.setPointerCapture(pointerId);
+    update(e);
+    e.preventDefault();
+  });
+  pad.addEventListener("pointermove", e => {
+    if (pointerId === e.pointerId) update(e);
+  });
+  pad.addEventListener("pointerup", end);
+  pad.addEventListener("pointercancel", end);
+}
+
+/*
+  Aim is now set by tapping or dragging on the battlefield itself.
+  There is intentionally no second aim joystick.
+*/
+function bindTouchStick() {
+  return;
+  /* kept empty so older cached code cannot create an aim pad */
+}
+
+/* Old dual-stick helper removed; mobile uses one movement stick plus FIRE. */
+/*
+function bindTouchStick(padId, knobId, kind) {
+  const pad = document.getElementById(padId);
+  const knob = document.getElementById(knobId);
+  let pointerId = null;
+
+  function update(e) {
+    const r = pad.getBoundingClientRect();
+    const max = r.width * .34;
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    const length = Math.hypot(dx, dy) || 1;
+    const scale = Math.min(1, max / length);
+    const x = dx * scale / max;
+    const y = dy * scale / max;
+    knob.style.transform = `translate(${dx * scale}px, ${dy * scale}px)`;
+    if (kind === "move") {
+      touch.moveX = x;
+      touch.moveY = y;
+    } else {
+      touch.aimX = x;
+      touch.aimY = y;
+      touch.aimActive = Math.hypot(x, y) > .12;
+    }
+  }
+
+  function end(e) {
+    if (pointerId !== e.pointerId) return;
+    pointerId = null;
+    knob.style.transform = "translate(0, 0)";
+    if (kind === "move") {
+      touch.moveActive = false;
+      touch.moveX = touch.moveY = 0;
+    } else {
+      touch.aimActive = false;
+    }
+  }
+
+  pad.addEventListener("pointerdown", e => {
+    if (pointerId !== null) return;
+    pointerId = e.pointerId;
+    pad.setPointerCapture(pointerId);
+    if (kind === "move") touch.moveActive = true;
+    update(e);
+    e.preventDefault();
+  });
+  pad.addEventListener("pointermove", e => {
+    if (pointerId === e.pointerId) update(e);
+  });
+  pad.addEventListener("pointerup", end);
+  pad.addEventListener("pointercancel", end);
+}
+*/
+
+bindMoveStick();
+
+const fireBtn = document.getElementById("fireBtn");
+fireBtn.addEventListener("pointerdown", e => {
+  touch.firing = true;
+  fireBtn.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+fireBtn.addEventListener("pointerup", () => touch.firing = false);
+fireBtn.addEventListener("pointercancel", () => touch.firing = false);
+const sprintBtn = document.getElementById("sprintBtn");
+sprintBtn.addEventListener("pointerdown", e => {
+  touch.sprinting = true;
+  sprintBtn.classList.add("active");
+  sprintBtn.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+sprintBtn.addEventListener("pointerup", () => {
+  touch.sprinting = false;
+  sprintBtn.classList.remove("active");
+});
+sprintBtn.addEventListener("pointercancel", () => {
+  touch.sprinting = false;
+  sprintBtn.classList.remove("active");
+});
+document.getElementById("restartBtn").addEventListener("click", restartFromSavedProgress);
+const campBtn = document.getElementById("campBtn");
+campBtn.addEventListener("click", () => teleportToCamp());
+
+const player = {
+  x: 900, y: 7035, r: 17,
+  hp: 450, maxHp: 450,
+  speed: 300,
+  fireTimer: 0,
+  invuln: 0
+};
+
+const tent = { x: 860, y: 6850, r: 56 };
+const hospital = { x: 1120, y: 6850, r: 56 };
+const friendlyCamps = [{ tent, hospital, label: "BLUE FORWARD CAMP" }];
+const city = {
+  x: 900, y: 3650, r: 160,
+  hp: 3200,
+  maxHp: 3200,
+  destroyed: false,
+  repairClock: 0,
+  repaired: false,
+  campEstablished: false,
+  checkpointTouched: false,
+  attackers: new Set(),
+};
+let hospitalClock = 0;
+let tentHealClock = 0;
+let liberationQueue = [];
+let liberationFlashes = [];
+let liberationActive = false;
+let liberationMessage = "SECTOR LIBERATED — BLUE CAMP ESTABLISHED";
+let victoryPending = false;
+let debrisClearTimer = 0;
+const hq = { x: 900, y: 310, r: 150, hp: 1800, maxHp: 1800 };
+
+let kills = 0;
+let capacity = 5;
+let army = [];
+let rescueSquads = [];
+let npcAllies = [];
+let nextNpcAllyId = 1;
+let nextRescueSquadId = 1;
+let fallenSoldiers = [];
+let enemies = [];
+let enemyCorpses = [];
+let bullets = [];
+let enemyBullets = [];
+let particles = [];
+let shards = [];
+let explosions = [];
+let craters = [];
+let squadDeadCommand = false;
+let texts = [];
+let mines = [];
+let last = performance.now();
+let spawnClock = 0;
+let trainClock = 0;
+let trainingQueued = false;
+let messageTimer = 0;
+let gameOver = false;
+let victory = false;
+let nextSoldierId = 1;
+let squadWipeBoost = 0;
+let combatTimer = 0;
+let lastPlayerY = player.y;
+const INTRO_HOLD_DURATION = 2;
+const INTRO_MOVE_DURATION = 2.6;
+const INTRO_PAN_DURATION = INTRO_HOLD_DURATION + INTRO_MOVE_DURATION;
+let introPanTimer = INTRO_PAN_DURATION;
+let introPanStart = null;
+
+const camera = { x: 0, y: 0 };
+let cameraManual = false;
+
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function dist(a,b) { return Math.hypot(a.x-b.x, a.y-b.y); }
+function rand(a,b) { return a + Math.random() * (b-a); }
+function pick(a) { return a[(Math.random() * a.length) | 0]; }
+function playerStandingOnMine() {
+  return mines.some(m => !m.triggered && m.hp > 0 && Math.hypot(player.x - m.x, player.y - m.y) < 30);
+}
+function playerStandingOnArmedMine() {
+  return mines.some(m => m.armed && !m.triggered && m.hp > 0 && Math.hypot(player.x - m.x, player.y - m.y) < 30);
+}
+function isSprinting() {
+  // Right-click on PC or the mobile SPRINT button. A live mine still blocks it.
+  return !playerStandingOnMine() && (mouse.sprint || touch.sprinting);
+}
+function moveMultiplier() {
+  const base = isSprinting()
+    ? squadWipeBoost > 0 ? 1.45 * 1.15 : 1.6
+    : squadWipeBoost > 0 ? 1.45 : 1;
+  return base * (playerStandingOnArmedMine() ? .85 : 1);
+}
+function markCombat() { combatTimer = 2.5; }
+
+function worldPointInCamera(x, y, padding = 80) {
+  const viewW = W / zoom;
+  const viewH = H / zoom;
+  return x >= camera.x - padding && x <= camera.x + viewW + padding &&
+    y >= camera.y - padding && y <= camera.y + viewH + padding;
+}
+
+function alliedSquadSoundAudible(s) {
+  // On mobile the camera can show a large portion of the map. Do not treat
+  // merely being inside that broad viewport as proximity: distant squads are
+  // quiet unless the player is near them or has deliberately panned the map.
+  return Math.hypot(s.x - player.x, s.y - player.y) < 220 ||
+    (cameraManual && worldPointInCamera(s.x, s.y, 0));
+}
+
+function tileKey(tx, ty) { return tx + "," + ty; }
+function defaultTileOwner(tx, ty) {
+  return ty * tileSize < enemyBorderY ? "red" : "blue";
+}
+function getTileOwner(tx, ty) {
+  return tileOwners.get(tileKey(tx, ty)) || defaultTileOwner(tx, ty);
+}
+function levelForY(y) {
+  const index = levels.findIndex(level => y >= level.minY && y < level.maxY);
+  return index < 0 ? 0 : index + 1;
+}
+function visibleToPlayer(entity) {
+  return levelForY(entity.y) <= currentLevel;
+}
+function updateCapturedTile() {
+  const tx = clamp(Math.floor(player.x / tileSize), 0, world.w / tileSize - 1);
+  const ty = clamp(Math.floor(player.y / tileSize), 0, world.h / tileSize - 1);
+  const key = tileKey(tx, ty);
+  if (key === lastPlayerTile) return;
+  if (lastPlayerTile !== null) {
+    // Captured territory stays blue; walking over it cannot turn it red again.
+    tileOwners.set(key, "blue");
+  }
+  lastPlayerTile = key;
+}
+
+function captureTileAt(x, y, owner) {
+  const tx = clamp(Math.floor(x / tileSize), 0, world.w / tileSize - 1);
+  const ty = clamp(Math.floor(y / tileSize), 0, world.h / tileSize - 1);
+  tileOwners.set(tileKey(tx, ty), owner);
+}
+
+function startLiberation(level) {
+  liberationQueue = [];
+  const minTy = Math.floor(level.minY / tileSize);
+  const maxTy = Math.ceil(level.maxY / tileSize);
+  for (let ty = minTy; ty < maxTy; ty++) {
+    for (let tx = 0; tx < world.w / tileSize; tx++) {
+      liberationQueue.push({tx, ty});
+    }
+  }
+  liberationActive = true;
+  liberationMessage = "SECTOR LIBERATED — BLUE CAMP ESTABLISHED";
+  sfx("level");
+}
+
+function startCheckpointLiberation() {
+  liberationQueue = [];
+  const startTy = Math.floor(city.y / tileSize);
+  const endTy = Math.ceil(world.h / tileSize);
+  for (let ty = startTy; ty < endTy; ty++) {
+    for (let tx = 0; tx < world.w / tileSize; tx++) {
+      liberationQueue.push({tx, ty});
+    }
+  }
+  liberationActive = true;
+  liberationMessage = "CHECKPOINT CAPTURED — BACKLINE LIBERATED";
+}
+
+function updateLiberation(dt) {
+  if (liberationActive) {
+    // Sweep the whole liberated backline quickly; the sequence should never
+    // hold the player for more than a few seconds.
+    const steps = Math.max(1, Math.floor(dt * 420));
+    for (let i = 0; i < steps && liberationQueue.length; i++) {
+      const tile = liberationQueue.shift();
+      tileOwners.set(tileKey(tile.tx, tile.ty), "blue");
+      liberationFlashes.push({
+        x: tile.tx * tileSize + tileSize / 2,
+        y: tile.ty * tileSize + tileSize / 2,
+        life: .45
+      });
+    }
+    if (!liberationQueue.length) {
+      liberationActive = false;
+      sfx("level");
+      if (victoryPending) {
+        debrisClearTimer = .9;
+        for (const crater of craters) {
+          if (debrisInLiberatedArea(crater)) crater.cleanupLife = .9;
+        }
+        for (const corpse of enemyCorpses) {
+          if (debrisInLiberatedArea(corpse)) corpse.cleanupLife = .9;
+        }
+        say("SECTOR LIBERATED — CLEARING WAR DEBRIS", 1.2);
+      } else {
+        say(liberationMessage, 2.8);
+      }
+    }
+  }
+  if (victoryPending && !liberationActive) {
+    debrisClearTimer = Math.max(0, debrisClearTimer - dt);
+    if (debrisClearTimer <= 0) {
+      victoryPending = false;
+      victory = true;
+      sfx("level");
+      say("LEVEL 1 COMPLETE — PRISON HQ DESTROYED", 999);
+    }
+  }
+  for (const flash of liberationFlashes) flash.life -= dt;
+  liberationFlashes = liberationFlashes.filter(flash => flash.life > 0);
+}
+
+function debrisInLiberatedArea(item) {
+  return city.repaired && item.y >= city.y;
+}
+
+function updateLiberatedDebris(dt) {
+  if (!city.repaired) return;
+  // Cleanup is intentionally gentle: the liberated backline gets tidier over
+  // time, while the active front and everything above the checkpoint remain.
+  for (const crater of craters) {
+    if (!debrisInLiberatedArea(crater)) continue;
+    if (!Number.isFinite(crater.cleanupLife)) {
+      crater.cleanupLife = rand(48, 92);
+      crater.cleanupMax = crater.cleanupLife;
+    }
+    crater.cleanupLife -= dt;
+  }
+  craters = craters.filter(crater => !Number.isFinite(crater.cleanupLife) || crater.cleanupLife > 0);
+
+  for (const corpse of enemyCorpses) {
+    if (!debrisInLiberatedArea(corpse)) continue;
+    if (!Number.isFinite(corpse.cleanupLife)) {
+      corpse.cleanupLife = rand(55, 105);
+      corpse.cleanupMax = corpse.cleanupLife;
+    }
+    corpse.cleanupLife -= dt;
+  }
+  enemyCorpses = enemyCorpses.filter(corpse => !Number.isFinite(corpse.cleanupLife) || corpse.cleanupLife > 0);
+}
+
+function updateIntroPan(dt) {
+  const viewW = W / zoom;
+  const viewH = H / zoom;
+  if (!introPanStart) {
+    introPanStart = {
+      x: clamp(city.x - viewW / 2, 0, Math.max(0, world.w - viewW)),
+      y: clamp(city.y - viewH / 2, 0, Math.max(0, world.h - viewH))
+    };
+  }
+  introPanTimer = Math.max(0, introPanTimer - dt);
+  const elapsed = INTRO_PAN_DURATION - introPanTimer;
+  // Hold the enemy base completely still first so the player can read the
+  // objective, then make the camera move quickly down to the player.
+  const t = clamp((elapsed - INTRO_HOLD_DURATION) / INTRO_MOVE_DURATION, 0, 1);
+  const eased = t * t * (3 - 2 * t);
+  const targetX = clamp(player.x - viewW / 2, 0, Math.max(0, world.w - viewW));
+  const targetY = clamp(player.y - viewH / 2, 0, Math.max(0, world.h - viewH));
+  camera.x = introPanStart.x + (targetX - introPanStart.x) * eased;
+  camera.y = introPanStart.y + (targetY - introPanStart.y) * eased;
+  cameraManual = true;
+  if (introPanTimer <= 0) {
+    cameraManual = false;
+    introPanStart = null;
+  }
+}
+
+function updateLevelProgress() {
+  const level = levels[currentLevel - 1];
+  if (!level) return;
+  const progress = clamp((level.maxY - player.y) / (level.maxY - level.minY), 0, 1);
+  // Final HQ armor is gated behind the prison checkpoint. It cannot begin
+  // its late-game reinforcement wave while the prison is still hostile.
+  if (progress >= .75 && city.repaired && !city.destroyed && !tankWaveStarted) startTankWave();
+  const remaining = enemies.some(e => !e.dead && e.type !== "barricade" && e.y >= level.minY && e.y < level.maxY);
+  // Level 1 is completed by liberating the prison, not by clearing every
+  // emplacement in its zone. The northern level is reserved for later.
+  // The level ends only when the Prison HQ is destroyed.
+}
+
+function startTankWave() {
+  if (tankWaveStarted) return;
+  tankWaveStarted = true;
+  const y = hq.y;
+  for (let i = 0; i < 5; i++) {
+    const a = i / 5 * Math.PI * 2 + .25;
+    const tank = makeEnemy(
+      "tank",
+      hq.x + Math.cos(a) * 370,
+      hq.y + Math.sin(a) * 290,
+      {guardPost: true, guardCenter: hq}
+    );
+    if (i === 0) {
+      tank.isBoss = true;
+      tank.r = 66;
+      tank.hp = tank.maxHp = 2400;
+      tank.speed = 74;
+      tank.range = 760;
+      tank.damage = 82;
+      tank.fire = 1.35;
+      tank.fireTimer = 1.2;
+      tank.value = 55;
+    }
+  }
+  alertNearbyEnemies(hq.x, hq.y, 1100);
+  sfx("tankShot");
+  say("75% — HQ TANK RESERVES DEPLOYED", 3);
+}
+
+function say(msg, seconds = 2.2) {
+  const el = document.getElementById("message");
+  el.textContent = msg;
+  el.classList.add("show");
+  messageTimer = seconds;
+}
+
+function addText(x,y,text,color="#fff") {
+  texts.push({x,y,text,color,life:1});
+}
+
+function leaveEnemyCorpse(e) {
+  // Infantry are intentionally sparse; every heavier emplacement leaves wreckage.
+  if ((e.type === "soldier" || e.type === "elite") && Math.random() > .5) return;
+  enemyCorpses.push({
+    type: e.type,
+    x: e.x,
+    y: e.y,
+    angle: e.angle,
+    holes: (e.holes || []).map(hole => ({...hole}))
+  });
+  if (enemyCorpses.length > 180) enemyCorpses.shift();
+}
+
+function createFriendlySoldier(x, y, elite = false) {
+  return {
+    x, y,
+    r: elite ? 14 : 11,
+    hp: elite ? 105 : 55,
+    maxHp: elite ? 105 : 55,
+    fireTimer: rand(.1,.3),
+    angle: 0,
+    id: nextSoldierId++,
+    damageFlash: 0,
+    elite,
+    temporary: elite
+  };
+}
+
+function createNpcAlly(x, y, groupId, slot) {
+  return {
+    x, y, r: 15, hp: 230, maxHp: 230,
+    fireTimer: rand(.15, .6), angle: 0,
+    id: nextNpcAllyId++, damageFlash: 0,
+    rescue: true, groupId, slot
+  };
+}
+
+function regularArmyCount() {
+  return army.filter(s => !s.temporary).length;
+}
+
+function makeEnemy(type, x, y, options = {}) {
+  const data = {
+    soldier: { r:15, hp:100, speed:110, range:300, damage:7, fire:.62, color:"#ef6262" },
+    elite: { r:18, hp:260, speed:125, range:420, damage:11, fire:.38, color:"#f0b14a" },
+    tank: { r:52, hp:850, speed:70, range:650, damage:65, fire:1.25, color:"#a93f48" },
+    tower: { r:27, hp:220, speed:0, range:520, damage:18, fire:1.2, color:"#d84d56" },
+    turret: { r:30, hp:300, speed:0, range:560, damage:14, fire:.7, color:"#d84d56" },
+    machineGun: { r:32, hp:330, speed:0, range:540, damage:3.5, fire:.075, color:"#d7a24c" },
+    artillery: { r:36, hp:380, speed:42, range:900, damage:44, fire:2.8, color:"#c24d53" },
+    armyTent: { r:46, hp:360, speed:0, range:0, damage:0, fire:99, color:"#a53d48" },
+    barricade: { r:40, hp:180, speed:0, range:0, damage:0, fire:99, color:"#bf4148" }
+  }[type];
+
+  const enemy = {
+    type, x, y, ...data,
+    maxHp: data.hp,
+    fireTimer: rand(0, data.fire),
+    angle: rand(0, Math.PI * 2),
+    holes: [],
+    alerted: false,
+    dead: false,
+    linkedCity: options.linkedCity || null,
+    attachedToCity: !!options.attachedToCity,
+    // Prison elites are sentries, not roaming assault units. Their post and
+    // leash keep them defending the checkpoint instead of chasing across the map.
+    guardPost: !!options.guardPost,
+    guardCenter: options.guardCenter || null,
+    guardHomeX: x,
+    guardHomeY: y,
+    spawnTimer: type === "armyTent" ? 1.5 : 0
+  };
+  enemies.push(enemy);
+  return enemy;
+}
+
+function restoreRescueRefuge(squad) {
+  const centerTx = Math.floor(squad.x / tileSize);
+  const centerTy = Math.floor(squad.y / tileSize);
+  for (let ty = centerTy - 1; ty <= centerTy + 1; ty++) {
+    for (let tx = centerTx - 1; tx <= centerTx + 1; tx++) {
+      if (tx >= 0 && ty >= 0 && tx < world.w / tileSize && ty < world.h / tileSize) {
+        tileOwners.set(tileKey(tx, ty), "blue");
+      }
+    }
+  }
+}
+
+function populate() {
+  // Defensive lanes throughout the enemy territory.
+  // Only Level 1 is currently present. The northern Level 2 battlefield is
+  // intentionally not spawned until that level is added back.
+  for (let row = 0; row < 8; row++) {
+    const y = 5700 - row * 280;
+    const count = 8;
+    for (let i = 0; i < count; i++) {
+      const x = 180 + i * (1440 / (count - 1)) + rand(-70,70);
+      // Keep the opening several lanes approachable: artillery only appears deeper in.
+      let type = row < 6
+        ? pick(["soldier","soldier","soldier","soldier","barricade","turret","machineGun"])
+        : pick(["soldier","soldier","soldier","soldier","barricade","turret","machineGun","machineGun"]);
+      // Elite soldiers begin appearing around the checkpoint, but remain rare.
+      if (row >= 7) {
+        const rareRoll = Math.random();
+        if (rareRoll < .20) type = "elite";
+      }
+      makeEnemy(type, clamp(x, 100, 1700), y + rand(-70,70));
+    }
+  }
+
+  // Reinforcement tents are deliberately sparse and distributed through the level.
+  for (const [x, y] of [[420, 4700]]) {
+    makeEnemy("armyTent", x, y);
+  }
+  // One slow artillery battery adds a readable long-range threat without flooding
+  // the early battlefield with shell fire.
+  makeEnemy("artillery", 900, 4300);
+
+  // The prison checkpoint is guarded by a dense elite perimeter. These are
+  // tethered sentries: unlike ordinary elites, they never abandon the prison.
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2;
+    makeEnemy("elite",
+      city.x + Math.cos(a) * 285,
+      city.y + Math.sin(a) * 225,
+      {guardPost: true, guardCenter: city});
+  }
+  const prisonMg = makeEnemy("machineGun", city.x, city.y - 120, {
+    guardPost: true,
+    guardCenter: city,
+    linkedCity: city,
+    attachedToCity: true
+  });
+  // The prison gun uses the player's full practical battlefield range.
+  prisonMg.range = 1800;
+  prisonMg.damage = 12;
+
+  for (let i = 0; i < 26; i++) {
+    mines.push({
+      x: rand(180, 1620),
+      y: rand(4800, 5750),
+      hp: 60,
+      maxHp: 60,
+      triggered: false,
+      hidden: true,
+      armed: false,
+      fuse: 0
+    });
+  }
+
+  // Two rescue camps sit just inside blue territory at the border. Each returns
+  // after a visible 35-second eliminated timer and fights independently.
+  for (const [x, y] of [[330, 6100], [1470, 6100]]) {
+    const squad = {
+      id: nextRescueSquadId++,
+      x: x + rand(-80,80), y: y + rand(-70,70),
+      revived: false, reviveProgress: 0, radius: 92
+    };
+    rescueSquads.push(squad);
+    // A tiny blue island marks the soldiers' desperate, temporary safe zone.
+    restoreRescueRefuge(squad);
+  }
+
+  // Long barricade walls across the red territory.
+  for (const y of [5600, 4300]) {
+    for (let x = 200; x <= 1600; x += tileSize) {
+      makeEnemy("barricade", x, y);
+    }
+  }
+}
+populate();
+
+function nearestFriendlyCamp(point = player) {
+  return friendlyCamps.reduce((best, camp) => {
+    if (!best || dist(point, camp.tent) < dist(point, best.tent)) return camp;
+    return best;
+  }, null);
+}
+
+function nearTent() {
+  const camp = nearestFriendlyCamp();
+  return camp && dist(player, camp.tent) < 105;
+}
+
+function nearHospital() {
+  return friendlyCamps.some(camp => dist(player, camp.hospital) < 110);
+}
+
+function establishCityCamp() {
+  if (city.campEstablished) return;
+  const newTent = { x: city.x + 135, y: city.y + 185, r: 56 };
+  const newHospital = { x: city.x - 135, y: city.y + 185, r: 56 };
+  friendlyCamps.push({ tent: newTent, hospital: newHospital, label: "LIBERATED PRISON CAMP" });
+  city.campEstablished = true;
+  city.repaired = true;
+  startCheckpointLiberation();
+  sfx("level");
+  createExplosion(city.x, city.y, 2.4, "#74d6a0");
+  say("PRISON CAPTURED — LEVEL 1 COMPLETE", 3.2);
+}
+
+function saveRestartState() {
+  const checkpoint = city.repaired
+    ? {x: city.x + 120, y: city.y + 280}
+    : {x: tent.x, y: tent.y + 92};
+  const state = {
+    checkpoint,
+    kills, capacity,
+    currentLevel, hqHp: hq.hp,
+    city: {
+      hp: city.hp,
+      destroyed: city.destroyed,
+      repairClock: city.repairClock,
+      repaired: city.repaired,
+      campEstablished: city.campEstablished,
+      checkpointTouched: city.checkpointTouched
+    },
+    tileOwners: [...tileOwners.entries()],
+    rescueSquads: rescueSquads.map(s => ({...s})),
+    npcAllies: npcAllies.map(s => ({...s})),
+    army: army.map(s => ({...s})),
+    nextSoldierId, nextNpcAllyId, nextRescueSquadId,
+  };
+  try { sessionStorage.setItem("quickArmyRestartState", JSON.stringify(state)); } catch (_) {}
+}
+
+function restartFromSavedProgress() {
+  if (!gameOver) {
+    try { sessionStorage.removeItem("quickArmyRestartState"); } catch (_) {}
+    location.reload();
+    return;
+  }
+  saveRestartState();
+  // Restore in place so mobile fullscreen/orientation and the game controls
+  // remain active instead of being reset by a page reload.
+  restoreRestartState();
+  if (matchMedia("(pointer: coarse)").matches) enterMobilePresentation();
+}
+
+function restoreRestartState() {
+  let state = null;
+  try {
+    const raw = sessionStorage.getItem("quickArmyRestartState");
+    if (raw) {
+      state = JSON.parse(raw);
+      sessionStorage.removeItem("quickArmyRestartState");
+    }
+  } catch (_) {}
+  if (!state) return;
+
+  kills = state.kills ?? kills;
+  capacity = state.capacity ?? capacity;
+  currentLevel = clamp(state.currentLevel ?? currentLevel, 1, levels.length);
+  hq.hp = state.hqHp ?? hq.hp;
+  const savedCity = state.city || {};
+  Object.assign(city, savedCity);
+  if (!city.destroyed) {
+    city.repaired = false;
+    city.campEstablished = false;
+  }
+  tileOwners.clear();
+  for (const [key, owner] of state.tileOwners || []) tileOwners.set(key, owner);
+  // The checkpoint snapshot already contains the captured tiles; do not replay
+  // the liberation animation just because the player restarted after dying.
+  liberationQueue = [];
+  liberationActive = false;
+  victoryPending = false;
+  debrisClearTimer = 0;
+  rescueSquads = (state.rescueSquads || rescueSquads).map(s => ({...s}));
+  rescueSquads = rescueSquads.slice(0, 2);
+  const rescueSpawnPoints = [[330, 6100], [1470, 6100]];
+  while (rescueSquads.length < 2) {
+    const [x, y] = rescueSpawnPoints[rescueSquads.length];
+    const squad = {id: nextRescueSquadId++, x, y, revived: false, reviveProgress: 0, radius: 92};
+    rescueSquads.push(squad);
+    restoreRescueRefuge(squad);
+  }
+  const rescueIds = new Set(rescueSquads.map(s => s.id));
+  npcAllies = (state.npcAllies || []).filter(s => rescueIds.has(s.groupId)).map(s => ({...s}));
+  army = (state.army || []).filter(s => !s.temporaryRally && !s.bazooka).map(s => ({...s}));
+  nextSoldierId = state.nextSoldierId ?? nextSoldierId;
+  nextNpcAllyId = state.nextNpcAllyId ?? nextNpcAllyId;
+  nextRescueSquadId = Math.max(state.nextRescueSquadId ?? nextRescueSquadId, ...rescueSquads.map(s => Number(s.id) + 1));
+  player.x = state.checkpoint?.x ?? tent.x;
+  player.y = state.checkpoint?.y ?? tent.y + 92;
+  player.hp = player.maxHp;
+  player.invuln = 1.2;
+  lastPlayerY = player.y;
+  gameOver = false;
+  victory = false;
+  introPanTimer = 0;
+  introPanStart = null;
+  say("PROGRESS RESTORED — BACK TO CAMP", 2.5);
+}
+
+restoreRestartState();
+if (introPanTimer > 0) say("MISSION: DESTROY THE ENEMY BASE", INTRO_PAN_DURATION);
+
+function updateCityRepair(dt) {
+  if (city.destroyed || gameOver || victory) return;
+  const near = dist(player, city) < city.r + 80;
+  const hint = document.getElementById("hospitalHint");
+  if (!near) {
+    if (city.checkpointTouched) hint.classList.remove("show");
+    return;
+  }
+  city.checkpointTouched = true;
+  hint.textContent = "PRISON HQ: DESTROY TO WIN — " + Math.ceil(city.hp) + " HP";
+  hint.classList.add("show");
+}
+
+function teleportToCamp() {
+  if (!campTeleportReady || gameOver || victory) return;
+  player.x = tent.x;
+  player.y = tent.y + 92;
+  cameraManual = false;
+  squadDeadCommand = false;
+  trainClock = 0;
+  trainingQueued = false;
+  campTeleportReady = false;
+  campBtn.classList.remove("show");
+  sfx("level");
+  say("TELEPORTED TO NEXT CAMP", 1.8);
+}
+
+function trainSoldier(dt) {
+  const trainingCamp = nearestFriendlyCamp();
+  const canTrainRegular = regularArmyCount() < capacity;
+  if (!nearTent() || gameOver || victory) {
+    trainClock = 0;
+    tentHealClock = 0;
+    trainingQueued = false;
+    return;
+  }
+
+  if (!canTrainRegular) {
+    trainClock = 0;
+    trainingQueued = false;
+    const wounded = army.filter(s => !s.temporary && s.hp > 0 && s.hp < s.maxHp);
+    if (!wounded.length) {
+      tentHealClock = 0;
+      return;
+    }
+    tentHealClock += dt;
+    if (tentHealClock >= 1) {
+      tentHealClock -= 1;
+      wounded.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+      const soldier = wounded[0];
+      soldier.hp = soldier.maxHp;
+      soldier.damageFlash = 0;
+      sfx("heal", .3);
+      say("ALLIED SOLDIER RESTORED", .7);
+    }
+    return;
+  }
+
+  tentHealClock = 0;
+
+  trainClock += dt;
+  if (!trainingQueued) {
+    trainingQueued = true;
+    sfx("queue");
+    say("SOLDIER QUEUED — 1 SECOND", .7);
+  }
+  if (trainClock >= 1) {
+    trainClock -= 1;
+    army.push(createFriendlySoldier(trainingCamp.tent.x + rand(-28,28), trainingCamp.tent.y + rand(-28,28)));
+    sfx("train");
+    say("SOLDIER TRAINED", .8);
+    trainingQueued = false;
+  }
+}
+
+function treatAtHospital(dt) {
+  const near = nearHospital();
+
+  if (!near) {
+    hospitalClock = 0;
+    return;
+  }
+
+  const regenDuration = 12;
+  const previousClock = hospitalClock;
+  hospitalClock = Math.min(regenDuration, hospitalClock + dt);
+  const playerRegen = player.maxHp / regenDuration * dt;
+  player.hp = Math.min(player.maxHp, player.hp + playerRegen);
+  for (const soldier of army) {
+    if (soldier.hp <= 0) continue;
+    soldier.hp = Math.min(soldier.maxHp, soldier.hp + soldier.maxHp / regenDuration * dt);
+  }
+  if (Math.floor(previousClock * 2) !== Math.floor(hospitalClock * 2)) sfx("heal", .12);
+}
+
+function playerMove(dt) {
+  const oldX = player.x;
+  const oldY = player.y;
+  let dx = 0, dy = 0;
+  if (touch.moveActive) {
+    dx = touch.moveX;
+    dy = touch.moveY;
+  } else {
+    if (keys.w || keys.arrowup) dy--;
+    if (keys.s || keys.arrowdown) dy++;
+    if (keys.a || keys.arrowleft) dx--;
+    if (keys.d || keys.arrowright) dx++;
+  }
+  if (dx || dy) {
+    cameraManual = false;
+    const len = Math.hypot(dx,dy);
+    const moveSpeed = player.speed * moveMultiplier();
+    player.x += dx / len * moveSpeed * dt;
+    player.y += dy / len * moveSpeed * dt;
+  }
+  player.x = clamp(player.x, 35, world.w - 35);
+  player.y = clamp(player.y, 35, world.h - 35);
+
+  // The next level stays behind the fog until the current level is cleared.
+  const activeLevel = levels[currentLevel - 1];
+  if (activeLevel) player.y = Math.max(player.y, activeLevel.minY + 35);
+
+  // Barricade walls physically block the player until they are destroyed.
+  for (const e of enemies) {
+    if (!e.dead && e.type === "barricade" && dist(player, e) < player.r + e.r) {
+      player.x = oldX;
+      player.y = oldY;
+      break;
+    }
+  }
+}
+
+function getAim() {
+  if (touch.mobileMode) {
+    // Mobile firing automatically selects the nearest visible enemy.
+    const autoTarget = nearestEnemy(player.x, player.y, 1100);
+    if (autoTarget) return {x: autoTarget.x, y: autoTarget.y};
+    if (touch.moveActive && Math.hypot(touch.moveX, touch.moveY) > .12) {
+      return {
+        x: player.x + touch.moveX * 1000,
+        y: player.y + touch.moveY * 1000
+      };
+    }
+    return {
+      x: player.x + touch.aimX * 1000,
+      y: player.y + touch.aimY * 1000
+    };
+  }
+  return {
+    x: camera.x + mouse.x / zoom,
+    y: camera.y + mouse.y / zoom
+  };
+}
+
+function rawFireInput() {
+  return mouse.fire || keys[" "] || touch.firing;
+}
+
+function playerIsFiring() {
+  return (!isSprinting() || squadWipeBoost > 0) && rawFireInput();
+}
+
+function shootPlayer() {
+  if (!playerIsFiring() || player.fireTimer > 0 || gameOver || victory) return;
+  const aim = getAim();
+  const a = Math.atan2(aim.y - player.y, aim.x - player.x);
+  player.fireTimer = .095;
+  markCombat();
+  bullets.push({
+    x: player.x + Math.cos(a) * 23,
+    y: player.y + Math.sin(a) * 23,
+    vx: Math.cos(a) * 910,
+    vy: Math.sin(a) * 910,
+    life: .55,
+    traveled: 0,
+    maxDistance: 500,
+    damage: 22,
+    owner: "player",
+    radius: 3
+  });
+  sfx("playerShot");
+  particles.push({x: player.x + Math.cos(a)*20, y: player.y + Math.sin(a)*20, life:.15, color:"#ffe19a", size:7});
+}
+
+function shootSoldier(s, target) {
+  if (s.fireTimer > 0) return;
+  const a = Math.atan2(target.y - s.y, target.x - s.x);
+  s.fireTimer = s.elite ? .22 + Math.random() * .06 : .34 + Math.random() * .1;
+  bullets.push({
+    x: s.x + Math.cos(a) * 15,
+    y: s.y + Math.sin(a) * 15,
+    vx: Math.cos(a) * 650,
+    vy: Math.sin(a) * 650,
+    life: .55,
+    traveled: 0,
+    maxDistance: 500,
+    damage: s.elite ? 16 : 10,
+    owner: "soldier",
+    radius: 3
+  });
+  sfx("soldierShot");
+}
+
+function aimedEnemy(x, y, range) {
+  const aim = getAim();
+  let best = null;
+  let bestScore = Infinity;
+  for (const e of enemies) {
+    if (e.dead || !visibleToPlayer(e) || Math.hypot(e.x-x, e.y-y) > range) continue;
+    const score = Math.hypot(e.x-aim.x, e.y-aim.y) + Math.hypot(e.x-x, e.y-y) * .22;
+    if (score < bestScore) {
+      bestScore = score;
+      best = e;
+    }
+  }
+  if (!city.destroyed && !city.repaired && visibleToPlayer(city) && Math.hypot(city.x-x, city.y-y) <= range) {
+    const score = Math.hypot(city.x-aim.x, city.y-aim.y) + Math.hypot(city.x-x, city.y-y) * .22;
+    if (score < bestScore) best = city;
+  }
+  return best;
+}
+
+function shootEnemy(e, target) {
+  if (e.fireTimer > 0 || e.type === "barricade") return;
+  const a = Math.atan2(target.y - e.y, target.x - e.x);
+  e.fireTimer = e.fire;
+  const heavyShell = e.type === "tank" || e.type === "artillery";
+  const artillery = e.type === "artillery";
+  const projectileSpeed = e.type === "tank" ? 560 : e.type === "artillery" ? 420 : 350;
+  const shellStartX = e.x + Math.cos(a) * (e.r + 4);
+  const shellStartY = e.y + Math.sin(a) * (e.r + 4);
+  const flightTime = clamp(.9 + Math.hypot(target.x - e.x, target.y - e.y) / 520, 1.15, 2.6);
+  enemyBullets.push({
+    x: shellStartX,
+    y: shellStartY,
+    vx: Math.cos(a) * projectileSpeed,
+    vy: Math.sin(a) * projectileSpeed,
+    life: artillery ? flightTime : heavyShell ? 1.35 : 1.05,
+    traveled: 0,
+    maxDistance: e.type === "tank" ? 520 : e.type === "artillery" ? 820 : 370,
+    damage: e.damage,
+    radius: heavyShell ? 10 : 4,
+    splash: e.type === "tank" ? 45 : e.type === "artillery" ? 105 : 0,
+    tankShell: heavyShell,
+    artillery,
+    flightTime,
+    flight: 0,
+    startX: shellStartX,
+    startY: shellStartY,
+    targetX: target.x,
+    targetY: target.y,
+    source: e,
+    arcHeight: artillery ? 180 : 0,
+    alerted: e.alerted
+  });
+  sfx(e.type === "tank" ? "tankShot" : "enemyShot");
+}
+
+function nearestEnemy(x, y, maxRange = Infinity) {
+  let best = null, bd = maxRange;
+  for (const e of enemies) {
+    if (e.dead || !visibleToPlayer(e)) continue;
+    const d = Math.hypot(e.x-x, e.y-y);
+    if (d < bd) { bd = d; best = e; }
+  }
+  if (!city.destroyed && !city.repaired && visibleToPlayer(city)) {
+    const d = Math.hypot(city.x-x, city.y-y);
+    if (d < bd) { bd = d; best = city; }
+  }
+  return best;
+}
+
+function createExplosion(x, y, size = 1, color = "#ff8d45") {
+  sfx("explosion");
+  explosions.push({x, y, life: .55, maxLife: .55, radius: 34 * size, color});
+  for (let i=0; i<28 * size; i++) {
+    particles.push({
+      x, y,
+      vx: rand(-150,150) * size,
+      vy: rand(-150,150) * size,
+      life: rand(.35,.75),
+      color: pick([color, "#ffd166", "#f04f45", "#fff0a0"]),
+      size: rand(4,11) * size
+    });
+  }
+}
+
+function createShardBurst(x, y, amount = 28, damage = 28) {
+  // Fast fragments are real short-lived hazard projectiles, not just decoration.
+  for (let i = 0; i < amount; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const speed = rand(620, 980);
+    shards.push({
+      x: x + Math.cos(a) * 8,
+      y: y + Math.sin(a) * 8,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      life: rand(.28, .58),
+      damage,
+      radius: rand(8, 13),
+      color: pick(["#fff0a0", "#ffd166", "#ff9e45", "#f04f45", "#e7e2d2"])
+    });
+  }
+}
+
+function createCrater(x, y, radiusMin = 70, radiusMax = 92) {
+  craters.push({x, y, radius: rand(radiusMin, radiusMax), life: Infinity});
+  if (craters.length > 80) craters.shift();
+}
+
+function rocketBlast(x, y, damage) {
+  createCrater(x, y);
+  sfx("rocketExplosion");
+  createExplosion(x, y, 2.8, "#ffae4d");
+  if (!city.destroyed && !city.repaired && visibleToPlayer(city) && Math.hypot(city.x-x, city.y-y) <= 145) {
+    damagePrisonHq(Math.max(18, Math.round(damage * (1 - Math.hypot(city.x-x, city.y-y) / 220))));
+  }
+  for (const e of enemies) {
+    if (e.dead || !visibleToPlayer(e)) continue;
+    const d = Math.hypot(e.x - x, e.y - y);
+    if (d > 145) continue;
+    const falloff = 1 - d / 220;
+    damageEnemy(e, Math.max(18, Math.round(damage * falloff)), x, y);
+  }
+}
+
+function alertNearbyEnemies(x, y, radius = 650) {
+  for (const enemy of enemies) {
+    if (!enemy.dead && Math.hypot(enemy.x - x, enemy.y - y) <= radius) {
+      enemy.alerted = true;
+    }
+  }
+}
+
+function damageEnemy(e, amount, hitX = e.x, hitY = e.y) {
+  if (e.dead) return;
+  // The Prison HQ's machine gun is part of the building and cannot be
+  // destroyed independently. It disappears when the HQ is destroyed.
+  if (e.linkedCity && !e.linkedCity.destroyed) return;
+  e.alerted = true;
+  e.hp -= amount;
+  sfx("hit");
+  addText(e.x + rand(-10,10), e.y - e.r - 5, "-" + Math.round(amount), "#73b9ff");
+  if (e.type === "barricade" || e.type === "tank" || e.type === "turret") {
+    alertNearbyEnemies(e.x, e.y);
+    const impactAngle = e.type === "tank" ? e.angle : 0;
+    const dx = hitX - e.x;
+    const dy = hitY - e.y;
+    const holeLimitX = e.type === "tank" ? 48 : e.type === "turret" ? 28 : 31;
+    const holeLimitY = e.type === "tank" ? 29 : e.type === "turret" ? 28 : 31;
+    e.holes.push({
+      x: clamp(dx * Math.cos(impactAngle) + dy * Math.sin(impactAngle), -holeLimitX, holeLimitX),
+      y: clamp(-dx * Math.sin(impactAngle) + dy * Math.cos(impactAngle), -holeLimitY, holeLimitY),
+      r: e.type === "turret" ? rand(3,5) : rand(4,8)
+    });
+  }
+  if (e.hp <= 0) {
+    e.dead = true;
+    leaveEnemyCorpse(e);
+    kills++;
+    if (e.type === "soldier") {
+      for (let i=0;i<8;i++) particles.push({x:e.x,y:e.y,life:.5,color:e.color,size:rand(3,8)});
+    } else {
+    createExplosion(e.x, e.y, 1.8);
+    }
+    sfx("death");
+  }
+}
+
+function damagePrisonHq(amount, source = null) {
+  if (city.destroyed || city.repaired) return;
+  if (source && !source.dead) city.attackers.add(source);
+  city.hp = Math.max(0, city.hp - amount);
+  addText(city.x + rand(-35,35), city.y - city.r - 8, "-" + Math.round(amount), "#73b9ff");
+  createExplosion(city.x + rand(-70,70), city.y + rand(-70,70), .35, "#ff9e45");
+  if (city.hp <= 0) {
+    city.destroyed = true;
+    city.repaired = true;
+    victoryPending = true;
+    // The clear sequence is the end of the fight: remove every hostile unit,
+    // structure, minefield, and projectile before the liberation sweep.
+    enemies = [];
+    enemyBullets = [];
+    for (const mine of mines) {
+      mine.triggered = true;
+      mine.hp = 0;
+    }
+    startLiberation(levels[0]);
+    createExplosion(city.x, city.y, 5.5, "#ff744d");
+    createShardBurst(city.x, city.y, 54, 0);
+    sfx("level");
+    say("PRISON HQ DESTROYED — LIBERATING SECTOR", 3.5);
+  }
+}
+
+function damageMine(m, amount) {
+  if (m.triggered || m.hp <= 0) return;
+  alertNearbyEnemies(m.x, m.y);
+  m.hp -= amount;
+  sfx("hit");
+  addText(m.x, m.y - 18, "-" + Math.round(amount), "#73b9ff");
+  if (m.hp <= 0) {
+    m.hp = 0;
+    m.triggered = true;
+    createExplosion(m.x, m.y, 1.8, "#ff914d");
+  }
+}
+
+function tankBlast(x, y, shell, hitSoldier = null, hitPlayer = false) {
+  if (!shell.splash) return;
+  const blastRadius = shell.artillery ? 150 : shell.rocket ? 135 : 95;
+  for (const s of [...army, ...npcAllies]) {
+    if (s === hitSoldier || Math.hypot(s.x-x, s.y-y) > blastRadius) continue;
+    s.hp -= shell.splash;
+    s.damageFlash = .9;
+    addText(s.x, s.y - 28, "S" + s.id + "  -" + shell.splash, "#ff6464");
+  }
+  if (!hitPlayer && Math.hypot(player.x-x, player.y-y) <= blastRadius && player.invuln <= 0) {
+    player.hp -= shell.splash;
+    markCombat();
+    player.invuln = .12;
+    addText(player.x, player.y - 28, "-" + shell.splash, "#ff6464");
+  }
+  if (shell.artillery) {
+    createCrater(x, y);
+    sfx("tankShot");
+    createExplosion(x, y, 2.8, "#ff8f45");
+    createShardBurst(x, y, 42, 26);
+  } else if (shell.rocket) {
+    createCrater(x, y);
+    sfx("rocketExplosion");
+    createExplosion(x, y, 2.3, "#ffae4d");
+  } else {
+    for (let i=0;i<14;i++) particles.push({x,y,life:.45,color:"#ffb04f",size:rand(4,11)});
+  }
+}
+
+function updateBullets(dt) {
+  for (const b of bullets) {
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.life -= dt;
+    b.traveled += Math.hypot(b.vx, b.vy) * dt;
+    if (b.traveled >= b.maxDistance) {
+      if (b.rocket) rocketBlast(b.x, b.y, b.damage);
+      b.life = -1;
+      continue;
+    }
+    for (const e of enemies) {
+      if (!e.dead && visibleToPlayer(e) && Math.hypot(b.x-e.x,b.y-e.y) < e.r + 4) {
+        if (b.rocket) rocketBlast(b.x, b.y, b.damage);
+        else damageEnemy(e, b.damage, b.x, b.y);
+        b.life = -1;
+        break;
+      }
+    }
+    if (b.life > 0 && !city.destroyed && !city.repaired && visibleToPlayer(city) && Math.hypot(b.x-city.x,b.y-city.y) < city.r + 4) {
+      if (b.rocket) rocketBlast(b.x, b.y, b.damage);
+      else damagePrisonHq(b.damage, b.source);
+      b.life = -1;
+      continue;
+    }
+    if (b.life > 0 && Math.hypot(b.x-hq.x,b.y-hq.y) < hq.r && hq.hp > 0) {
+      hq.hp -= b.damage;
+      b.life = -1;
+      addText(hq.x + rand(-30,30), hq.y - hq.r, "-" + b.damage, "#73b9ff");
+      if (hq.hp <= 0) {
+        victory = true;
+        say("RED HQ DESTROYED — BLUE WINS!", 999);
+      }
+    }
+  }
+  bullets = bullets.filter(b => b.life > 0 && b.x > -100 && b.y > -100 && b.x < world.w+100 && b.y < world.h+100);
+
+  for (const b of enemyBullets) {
+    if (b.artillery) {
+      b.prevX = b.x;
+      b.prevY = b.y;
+      b.flight += dt;
+      const t = clamp(b.flight / b.flightTime, 0, 1);
+      b.x = b.startX + (b.targetX - b.startX) * t;
+      b.y = b.startY + (b.targetY - b.startY) * t - Math.sin(t * Math.PI) * b.arcHeight;
+      if (t >= 1) {
+        tankBlast(b.targetX, b.targetY, b, null, false);
+        b.life = -1;
+      }
+      continue;
+    }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.life -= dt;
+    b.traveled += Math.hypot(b.vx, b.vy) * dt;
+    if (b.traveled >= b.maxDistance) {
+      if (b.rocket) {
+        tankBlast(b.x, b.y, b, null, false);
+      } else if (b.tankShell) {
+        createCrater(b.x, b.y);
+        createExplosion(b.x, b.y, 1.2, "#ff9e45");
+      }
+      b.life = -1;
+      continue;
+    }
+    if (Math.hypot(b.x-player.x,b.y-player.y) < player.r + 4) {
+      if (b.tankShell && !b.rocket) {
+        createCrater(b.x, b.y);
+        createExplosion(b.x, b.y, 1.2, "#ff9e45");
+      }
+      if (player.invuln <= 0) {
+        player.hp -= b.damage;
+        markCombat();
+        player.invuln = .12;
+        addText(player.x, player.y-28, "-" + b.damage, "#ff6464");
+      }
+      tankBlast(b.x, b.y, b, null, true);
+      b.life = -1;
+    }
+    for (const s of [...army, ...npcAllies]) {
+      if (b.life > 0 && Math.hypot(b.x-s.x,b.y-s.y) < s.r + 4) {
+        if (b.tankShell && !b.rocket) {
+          createCrater(b.x, b.y);
+          createExplosion(b.x, b.y, 1.2, "#ff9e45");
+        }
+        s.hp -= b.damage;
+        s.damageFlash = .9;
+        addText(s.x, s.y - 28, "S" + s.id + "  -" + Math.round(b.damage), "#ff6464");
+        tankBlast(b.x, b.y, b, s, false);
+        b.life = -1;
+        break;
+      }
+    }
+  }
+  enemyBullets = enemyBullets.filter(b => b.life > 0);
+}
+
+function reviveRescueSquad(squad) {
+  squad.revived = true;
+  squad.respawning = false;
+  squad.respawnTimer = 0;
+  squad.reviveProgress = 1;
+  for (let i = 0; i < 4; i++) {
+    npcAllies.push(createNpcAlly(squad.x + rand(-32,32), squad.y + rand(-25,25), squad.id, i));
+  }
+  sfx("heal");
+  createExplosion(squad.x, squad.y, 1.35, "#74d6a0");
+  say("ALLIED SQUAD JOINED THE ASSAULT", 2.8);
+}
+
+function updateRescueSquads(dt) {
+  let active = false;
+  for (const squad of rescueSquads) {
+    if (squad.respawning) {
+      squad.respawnTimer = Math.max(0, squad.respawnTimer - dt);
+      if (squad.respawnTimer <= 0) {
+        restoreRescueRefuge(squad);
+        reviveRescueSquad(squad);
+        say("ALLIED SQUAD REDEPLOYED", 2.2);
+      }
+      continue;
+    }
+    if (squad.revived || levelForY(squad.y) > currentLevel) continue;
+    const near = Math.hypot(player.x - squad.x, player.y - squad.y) <= squad.radius;
+    if (near && !gameOver && !victory) {
+      squad.reviveProgress = Math.min(1, squad.reviveProgress + dt);
+      active = true;
+      const hint = document.getElementById("hospitalHint");
+      hint.textContent = squad.reviveProgress >= 1 ? "RALLYING..." : "HOLD POSITION — RALLYING ALLIED SQUAD";
+      hint.classList.add("show");
+      if (squad.reviveProgress >= 1) reviveRescueSquad(squad);
+    } else {
+      squad.reviveProgress = 0;
+    }
+  }
+  return active;
+}
+
+function npcAllyTarget(s) {
+  let best = null;
+  let bestDistance = Infinity;
+  const group = npcAllies.filter(ally => ally.groupId === s.groupId && ally.hp > 0);
+  const anchor = group.length
+    ? group.reduce((point, ally) => ({x: point.x + ally.x, y: point.y + ally.y}), {x: 0, y: 0})
+    : s;
+  if (group.length) {
+    anchor.x /= group.length;
+    anchor.y /= group.length;
+  }
+  for (const e of enemies) {
+    if (e.dead || e.type === "barricade" || !visibleToPlayer(e)) continue;
+    const d = Math.hypot(e.x - anchor.x, e.y - anchor.y);
+    if (d < bestDistance) { best = e; bestDistance = d; }
+  }
+  return best || hq;
+}
+
+function shootNpcAlly(s, target) {
+  if (s.fireTimer > 0) return;
+  const a = Math.atan2(target.y - s.y, target.x - s.x);
+  s.fireTimer = .32 + Math.random() * .08;
+  bullets.push({
+    x: s.x + Math.cos(a) * 17, y: s.y + Math.sin(a) * 17,
+    vx: Math.cos(a) * 650, vy: Math.sin(a) * 650,
+    life: .72, traveled: 0, maxDistance: 500,
+    damage: 30, owner: "rescue"
+  });
+  if (alliedSquadSoundAudible(s)) sfx("soldierShot", .12);
+}
+
+function updateNpcAllies(dt) {
+  for (const s of npcAllies) {
+    if (s.hp <= 0) continue;
+    s.fireTimer -= dt;
+    s.damageFlash = Math.max(0, s.damageFlash - dt);
+    const target = npcAllyTarget(s);
+    const d = Math.hypot(target.x - s.x, target.y - s.y);
+    const orbitTime = performance.now() / 1000;
+    const orbitAngle = orbitTime * .22 + Math.PI / 4 + s.slot * (Math.PI * 2 / 4);
+    const formationRadius = target === hq ? 135 : 105;
+    const desiredX = target.x + Math.cos(orbitAngle) * formationRadius;
+    const desiredY = target.y + Math.sin(orbitAngle) * formationRadius;
+    const moveAngle = Math.atan2(desiredY - s.y, desiredX - s.x);
+    s.angle = Math.atan2(target.y - s.y, target.x - s.x);
+    const desiredDistance = Math.hypot(desiredX - s.x, desiredY - s.y);
+    if (desiredDistance > 8) {
+      s.x += Math.cos(moveAngle) * 138 * dt;
+      s.y += Math.sin(moveAngle) * 138 * dt;
+    }
+    if (d < 620) shootNpcAlly(s, target);
+    // Keep nearby allied soldiers from occupying the same pixels without
+    // changing their original shared target or their ability to cross lanes.
+    let separateX = 0;
+    let separateY = 0;
+    for (const other of npcAllies) {
+      if (other === s || other.hp <= 0) continue;
+      const dx = s.x - other.x;
+      const dy = s.y - other.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0 && distance < 78) {
+        const push = (78 - distance) / 78;
+        separateX += dx / distance * push;
+        separateY += dy / distance * push;
+      }
+    }
+    s.x += separateX * 150 * dt;
+    s.y += separateY * 150 * dt;
+    s.x = clamp(s.x, 20, world.w - 20);
+    s.y = clamp(s.y, 20, world.h - 20);
+    // Rescued squads liberate every tile they pass through on the way to the HQ.
+    captureTileAt(s.x, s.y, "blue");
+  }
+  for (const s of npcAllies) {
+    if (s.hp <= 0) {
+      s.hp = 0;
+      s.angle += Math.PI / 2;
+      const squad = rescueSquads.find(group => group.id === s.groupId);
+      if (squad) {
+        squad.lastDeathX = s.x;
+        squad.lastDeathY = s.y;
+      }
+      fallenSoldiers.push(s);
+    }
+  }
+  npcAllies = npcAllies.filter(s => s.hp > 0);
+  for (const squad of rescueSquads) {
+    if (squad.respawning || !squad.revived || npcAllies.some(s => s.groupId === squad.id)) continue;
+    // A wiped rescue squad returns as wounded survivors in the same refuge.
+    // Their previous bodies remain on the battlefield, but the encounter can be rescued again.
+    if (squad.reviveProgress === 1) {
+      if (Number.isFinite(squad.lastDeathX) && Number.isFinite(squad.lastDeathY)) {
+        squad.x = squad.lastDeathX;
+        squad.y = squad.lastDeathY;
+      }
+      squad.respawning = true;
+      squad.respawnTimer = 35;
+      say("SQUAD ELIMINATED — REDEPLOYING IN 35s", 2.2);
+    }
+  }
+}
+
+function updateEnemies(dt) {
+  for (const e of enemies) {
+    if (e.dead) continue;
+    if (levelForY(e.y) > currentLevel) continue;
+    e.fireTimer -= dt;
+
+    const friendlyTargets = [player, ...army, ...npcAllies];
+    const rescueNearby = npcAllies.some(s => Math.hypot(e.x - s.x, e.y - s.y) < 850);
+    if (e.attachedToCity) {
+      const attackers = [...city.attackers].filter(attacker => attacker && !attacker.dead);
+      if (attackers.length === 0) continue;
+      const target = attackers.reduce((best, attacker) => dist(e, attacker) < dist(e, best) ? attacker : best, attackers[0]);
+      e.angle = Math.atan2(target.y - e.y, target.x - e.x);
+      if (dist(e, target) < e.range) shootEnemy(e, target);
+      continue;
+    }
+    // Unprovoked red forces stay passive in blue territory, unless a rescued
+    // squad has entered their local area. Attacked units remain active.
+    if (player.y >= enemyBorderY && !e.alerted && !rescueNearby) continue;
+
+    if (e.type === "armyTent") {
+      // Enemy army tents are static battlefield objectives; they do not
+      // regenerate or produce replacement soldiers during the level.
+      continue;
+    }
+
+    const isHeadquartersGuard = e.guardPost && e.guardCenter === hq;
+    // The final HQ is completely dormant until the prison checkpoint is
+    // liberated. This is an absolute lock, even if an errant alert reaches it.
+    if (isHeadquartersGuard && !city.repaired) {
+      e.alerted = false;
+      continue;
+    }
+    if (isHeadquartersGuard && !e.alerted && dist(player, hq) > 620) continue;
+
+    const pd = dist(e, player);
+    // Tanks focus the player; all other enemies choose the nearest living
+    // friendly unit, including independent rescued soldiers.
+    const actualTarget = e.type === "tank"
+      ? player
+      : friendlyTargets.reduce((best, target) => dist(e, target) < dist(e, best) ? target : best, player);
+    const isPrisonGuard = e.guardPost && e.guardCenter;
+    const guardDistance = isPrisonGuard ? dist(e, e.guardCenter) : 0;
+    const targetDistance = dist(e, actualTarget);
+    const rushing = e.type !== "tank" && e.type !== "artillery" && targetDistance < 900;
+    e.angle = Math.atan2(actualTarget.y - e.y, actualTarget.x - e.x);
+
+    const tankClosing = e.type === "tank" && pd > 240;
+    const artilleryClosing = e.type === "artillery" && targetDistance > 430;
+    const canChase = !squadDeadCommand;
+    if (canChase && !isPrisonGuard && e.type !== "barricade" && e.type !== "tower" && e.type !== "turret" && e.type !== "machineGun" && (tankClosing || artilleryClosing || (e.type !== "tank" && e.type !== "artillery" && (targetDistance > e.range || rushing)))) {
+      const a = Math.atan2(actualTarget.y-e.y, actualTarget.x-e.x);
+      e.x += Math.cos(a) * e.speed * dt;
+      e.y += Math.sin(a) * e.speed * dt;
+    }
+
+    if (e.type === "soldier" || e.type === "elite" || e.type === "tank") captureTileAt(e.x, e.y, "red");
+
+    if (Math.hypot(e.x-actualTarget.x,e.y-actualTarget.y) < e.range) {
+      shootEnemy(e, actualTarget);
+    }
+  }
+}
+
+function updateArmy(dt) {
+  const hadArmy = army.length > 0;
+  const fallen = army.filter(s => s.hp <= 0 && !s.wounded);
+  for (const s of fallen) {
+    s.dead = true;
+    s.hp = 0;
+    s.angle += Math.PI / 2;
+    fallenSoldiers.push(s);
+  }
+  army = army.filter(s => s.hp > 0);
+  if (hadArmy && army.length === 0) {
+    squadWipeBoost = 12;
+    squadDeadCommand = true;
+    say("SQUAD LOST — MOBILITY BOOST", 2.4);
+  }
+  army.forEach((s, i) => {
+    s.fireTimer -= dt;
+    s.damageFlash = Math.max(0, s.damageFlash - dt);
+
+    // Soldiers always keep moving with the player.
+    const orbit = i * .8 + performance.now()/1200;
+    const desiredX = player.x + Math.cos(orbit) * (55 + i*11);
+    const desiredY = player.y + Math.sin(orbit) * (55 + i*11);
+    const followDistance = Math.hypot(desiredX-s.x, desiredY-s.y);
+    if (followDistance > 10) {
+      const followAngle = Math.atan2(desiredY-s.y, desiredX-s.x);
+      const followSpeed = player.speed * moveMultiplier();
+      s.x += Math.cos(followAngle) * followSpeed * dt;
+      s.y += Math.sin(followAngle) * followSpeed * dt;
+    }
+
+    // Soldiers have no independent targeting AI: they mirror your aim and fire only when you fire.
+    const aim = getAim();
+    s.angle = Math.atan2(aim.y-s.y, aim.x-s.x);
+    if (playerIsFiring()) shootSoldier(s, aim);
+    s.x = clamp(s.x, 20, world.w-20);
+    s.y = clamp(s.y, 20, world.h-20);
+  });
+}
+
+function updateMines(dt) {
+  for (const m of mines) {
+    const mtx = clamp(Math.floor(m.x / tileSize), 0, world.w / tileSize - 1);
+    const mty = clamp(Math.floor(m.y / tileSize), 0, world.h / tileSize - 1);
+    // Mines belong to red territory. Capturing their tile clears them out.
+    if (getTileOwner(mtx, mty) !== "red" && !m.armed) {
+      m.triggered = true;
+      m.hp = 0;
+      continue;
+    }
+    // Independent rescued squads ignore minefields completely.
+    const soldierOnMine = army.some(s => Math.hypot(s.x-m.x, s.y-m.y) < 30) ||
+      npcAllies.some(s => s.hp > 0 && Math.hypot(s.x-m.x, s.y-m.y) < 30);
+    const playerOnMine = Math.hypot(player.x-m.x, player.y-m.y) < 30;
+    if (!m.triggered && !m.armed && (playerOnMine || soldierOnMine)) {
+      m.armed = true;
+      m.fuse = 1.25;
+      alertNearbyEnemies(m.x, m.y);
+      sfx("mineTrigger");
+    }
+    if (!m.triggered && m.armed) {
+      m.fuse -= dt;
+      if (m.fuse > 0) continue;
+      m.triggered = true;
+      m.hp = 0;
+      alertNearbyEnemies(m.x, m.y);
+      const blastRadius = 220;
+      const playerDamage = Math.round(player.maxHp * .40);
+      const soldierDamage = 520;
+      if (Math.hypot(player.x-m.x, player.y-m.y) <= blastRadius && player.invuln <= 0) {
+        player.hp -= playerDamage;
+        markCombat();
+        player.invuln = .25;
+        addText(player.x, player.y-30, "-" + playerDamage + " MINE", "#ff5151");
+      }
+      for (const s of army) {
+        if (Math.hypot(s.x-m.x, s.y-m.y) <= blastRadius) {
+          s.hp -= soldierDamage;
+          s.damageFlash = .9;
+          addText(s.x, s.y - 28, "S" + s.id + "  -" + soldierDamage, "#ff6464");
+        }
+      }
+      for (const s of npcAllies) {
+        if (s.hp > 0 && Math.hypot(s.x-m.x, s.y-m.y) <= blastRadius) {
+          s.hp -= soldierDamage;
+          s.damageFlash = .9;
+          addText(s.x, s.y - 28, "ALLY  -" + soldierDamage, "#ff6464");
+        }
+      }
+      createCrater(m.x, m.y, 145, 180);
+      createExplosion(m.x, m.y, 3.8, "#ff914d");
+      createShardBurst(m.x, m.y, 48, 36);
+    }
+  }
+}
+
+function updateShards(dt) {
+  for (const shard of shards) {
+    if (shard.life <= 0) continue;
+    shard.x += shard.vx * dt;
+    shard.y += shard.vy * dt;
+    shard.life -= dt;
+
+    if (player.invuln <= 0 && Math.hypot(shard.x - player.x, shard.y - player.y) <= player.r + shard.radius) {
+      player.hp -= shard.damage;
+      player.invuln = .12;
+      markCombat();
+      addText(player.x, player.y - 30, "-" + shard.damage + " SHARD", "#ff6464");
+      shard.life = -1;
+      continue;
+    }
+    for (const soldier of [...army, ...npcAllies]) {
+      if (soldier.hp <= 0 || Math.hypot(shard.x - soldier.x, shard.y - soldier.y) > soldier.r + shard.radius) continue;
+      soldier.hp -= shard.damage;
+      soldier.damageFlash = .9;
+      addText(soldier.x, soldier.y - 28, "-" + shard.damage + " SHARD", "#ff6464");
+      shard.life = -1;
+      break;
+    }
+  }
+  shards = shards.filter(shard => shard.life > 0);
+}
+
+function update(dt) {
+  if (gameOver || victory) return;
+  if (introPanTimer > 0) {
+    updateIntroPan(dt);
+    return;
+  }
+
+  squadWipeBoost = Math.max(0, squadWipeBoost - dt);
+  combatTimer = Math.max(0, combatTimer - dt);
+  player.fireTimer -= dt;
+  player.invuln -= dt;
+  playerMove(dt);
+  updateCapturedTile();
+  shootPlayer();
+  trainSoldier(dt);
+  treatAtHospital(dt);
+  updateCityRepair(dt);
+  updateArmy(dt);
+  updateRescueSquads(dt);
+  updateNpcAllies(dt);
+  updateEnemies(dt);
+  updateBullets(dt);
+  updateMines(dt);
+  updateShards(dt);
+  updateLevelProgress();
+  updateLiberation(dt);
+  updateLiberatedDebris(dt);
+
+  if (player.hp <= 0) {
+    player.hp = 0;
+    saveRestartState();
+    gameOver = true;
+    sfx("death");
+    say("BLUE FORCE ELIMINATED — PRESS R TO RESTART", 999);
+  }
+
+  const progress = clamp(1 - player.y / world.h, 0, 1);
+  document.getElementById("sector").textContent =
+    progress < .22 ? "HQ Perimeter" :
+    progress < .48 ? "Upper Redline" :
+    progress < .73 ? "Enemy Territory" : "Lower Front";
+
+  document.getElementById("army").textContent = army.length + " / " + capacity;
+  document.getElementById("kills").textContent = kills;
+  document.getElementById("health").style.width = (player.hp / player.maxHp * 100) + "%";
+  document.getElementById("heroHpBar").style.width = (player.hp / player.maxHp * 100) + "%";
+  document.getElementById("heroHpLabel").textContent =
+    "HERO HP · " + Math.ceil(player.hp) + " / " + player.maxHp;
+
+  const activeBoss = enemies.find(e => e.isBoss && !e.dead && visibleToPlayer(e));
+  document.getElementById("bossWrap").style.display = activeBoss ? "block" : "none";
+  if (activeBoss) {
+    document.getElementById("bossHealth").style.width = clamp(activeBoss.hp / activeBoss.maxHp, 0, 1) * 100 + "%";
+  }
+
+  messageTimer -= dt;
+  if (messageTimer <= 0) document.getElementById("message").classList.remove("show");
+
+  const viewW = W / zoom;
+  const viewH = H / zoom;
+  if (!cameraManual) {
+    camera.x = clamp(player.x - viewW/2, 0, Math.max(0, world.w-viewW));
+    camera.y = clamp(player.y - viewH/2, 0, Math.max(0, world.h-viewH));
+  }
+  document.getElementById("zoomStatus").textContent = "Zoom: " + Math.round(zoom * 100) + "% · Mouse wheel";
+}
+
+function worldToScreen(x,y) {
+  return {x, y};
+}
+
+function drawWorld() {
+  ctx.save();
+  ctx.translate(-camera.x * zoom, -camera.y * zoom);
+  ctx.scale(zoom, zoom);
+  ctx.fillStyle = "#263540";
+  ctx.fillRect(0,0,world.w,world.h);
+
+  // Every map square has an owner and can be claimed by walking onto it.
+  for (let ty = 0; ty < world.h / tileSize; ty++) {
+    for (let tx = 0; tx < world.w / tileSize; tx++) {
+      const owner = getTileOwner(tx, ty);
+      ctx.fillStyle = owner === "red" ? "#4f3039" : "#264a50";
+      ctx.fillRect(tx * tileSize, ty * tileSize, tileSize, tileSize);
+    }
+  }
+
+  for (const flash of liberationFlashes) {
+    ctx.fillStyle = `rgba(93, 190, 231, ${clamp(flash.life * 1.8, 0, .8)})`;
+    ctx.fillRect(flash.x - tileSize / 2, flash.y - tileSize / 2, tileSize, tileSize);
+  }
+
+  if (player.y < enemyBorderY) {
+    // Keep the warning subtle: the red tiles already identify the territory.
+    ctx.strokeStyle = "rgba(255,92,104,.34)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(camera.x+4/zoom,camera.y+4/zoom,W/zoom-8/zoom,H/zoom-8/zoom);
+  }
+
+  // Battlefield grid.
+  ctx.strokeStyle = "rgba(181,205,216,.08)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x < world.w; x += 80) {
+    const p = worldToScreen(x,0);
+    ctx.beginPath(); ctx.moveTo(p.x,0); ctx.lineTo(p.x,world.h); ctx.stroke();
+  }
+  for (let y = 0; y < world.h; y += 80) {
+    const p = worldToScreen(0,y);
+    ctx.beginPath(); ctx.moveTo(0,p.y); ctx.lineTo(world.w,p.y); ctx.stroke();
+  }
+
+  // Territory boundary.
+  const boundary = worldToScreen(0, enemyBorderY);
+  ctx.setLineDash([18,12]);
+  ctx.strokeStyle = "#f05252";
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0,boundary.y); ctx.lineTo(world.w,boundary.y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawLabels();
+  drawHQ();
+  drawCity();
+  // Mines stay hidden until stepped on, then show a long warning circle.
+  drawMines();
+  drawCraters();
+  drawEnemyCorpses();
+  drawObjects();
+  drawBullets();
+  drawArmy();
+  drawRescueSquads();
+  drawNpcAllies();
+  drawPlayer();
+  drawEffects();
+  drawFogOfWar();
+  drawIntroBaseArrow();
+  // Friendly camps are UI anchors: render them last so explosions, particles,
+  // and the fog overlay never hide the army or medical tent.
+  drawTent();
+  drawHospital();
+  ctx.restore();
+}
+
+function drawIntroBaseArrow() {
+  if (introPanTimer <= INTRO_MOVE_DURATION) return;
+  const pulse = .88 + Math.sin(performance.now() / 150) * .12;
+  const bob = Math.sin(performance.now() / 220) * 10;
+  const tipY = city.y - city.r - 18;
+  const shaftTop = tipY - 150 + bob;
+  const shaftBottom = tipY - 28;
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.font = "900 24px Arial";
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "rgba(20,18,22,.75)";
+  ctx.fillStyle = `rgba(255,218,92,${pulse})`;
+  ctx.strokeText("ENEMY BASE", city.x, shaftTop - 22);
+  ctx.fillText("ENEMY BASE", city.x, shaftTop - 22);
+  ctx.strokeStyle = `rgba(255,218,92,${pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(city.x, shaftTop);
+  ctx.lineTo(city.x, shaftBottom);
+  ctx.stroke();
+  ctx.fillStyle = `rgba(255,218,92,${pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(city.x, tipY);
+  ctx.lineTo(city.x - 22, tipY - 34);
+  ctx.lineTo(city.x + 22, tipY - 34);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFogOfWar() {
+  const level = levels[currentLevel - 1];
+  if (!level || level.minY <= 0) return;
+  ctx.fillStyle = "rgba(5,9,15,.9)";
+  ctx.fillRect(0, 0, world.w, level.minY);
+  ctx.strokeStyle = "rgba(143,176,199,.5)";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([22, 14]);
+  ctx.beginPath();
+  ctx.moveTo(0, level.minY);
+  ctx.lineTo(world.w, level.minY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(220,235,245,.8)";
+  ctx.font = "900 18px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("FOG OF WAR — CLEAR LEVEL " + currentLevel + " TO ADVANCE", world.w / 2, level.minY - 24);
+}
+
+function drawLabels() {
+  ctx.save();
+  ctx.font = "800 18px Arial";
+  ctx.fillStyle = "rgba(255,255,255,.24)";
+  const labels = [
+    ["RED HEADQUARTERS", 900, 120],
+    ["RED DEFENSIVE BELT", 900, 1120],
+    ["MINEFIELD", 900, 5350],
+    [city.destroyed ? "PRISON HQ DESTROYED" : "PRISON HQ", city.x, city.y + 205]
+  ];
+  for (const camp of friendlyCamps) {
+    labels.push([camp.label, camp.tent.x, camp.tent.y + 78]);
+  }
+  for (const [t,x,y] of labels) {
+    const p = worldToScreen(x,y);
+    ctx.textAlign = "center";
+    ctx.fillText(t,p.x,p.y);
+  }
+  ctx.restore();
+}
+
+function drawRescueSquads() {
+  for (const squad of rescueSquads) {
+    if (levelForY(squad.y) > currentLevel) continue;
+    if (squad.respawning) {
+      const p = worldToScreen(squad.x, squad.y);
+      ctx.save();
+      // Keep the refuge visible during the long death timer, but make it
+      // clearly more ruined than the living injured-squad version.
+      ctx.fillStyle = "rgba(22,61,78,.72)";
+      ctx.fillRect(squad.x - 120, squad.y - 120, 240, 240);
+      ctx.strokeStyle = "#1d466b";
+      ctx.lineWidth = 14;
+      ctx.lineCap = "square";
+      for (const segment of [
+        [squad.x - 110, squad.y - 105, squad.x - 70, squad.y - 105],
+        [squad.x + 18, squad.y - 105, squad.x + 58, squad.y - 105],
+        [squad.x - 108, squad.y + 104, squad.x - 28, squad.y + 104],
+        [squad.x + 62, squad.y + 104, squad.x + 108, squad.y + 104],
+        [squad.x - 108, squad.y - 86, squad.x - 108, squad.y - 50],
+        [squad.x + 108, squad.y + 22, squad.x + 108, squad.y + 58]
+      ]) {
+        ctx.beginPath(); ctx.moveTo(segment[0], segment[1]); ctx.lineTo(segment[2], segment[3]); ctx.stroke();
+      }
+      drawFire(squad.x, squad.y, .72, squad.x * .06);
+      // Leave a readable trace of the squad's defeat. The bodies sit around
+      // the refuge edges so the central death countdown stays unobstructed.
+      for (const [x, y, angle] of [[-63,-30,-.25], [58,-32,.38], [-48,57,.12]]) {
+        ctx.save();
+        ctx.translate(squad.x + x, squad.y + y);
+        ctx.rotate(angle);
+        ctx.globalAlpha = .9;
+        ctx.fillStyle = "#245b91";
+        ctx.fillRect(-21, -7, 42, 14);
+        ctx.fillStyle = "#76aeda";
+        ctx.beginPath(); ctx.arc(-24, 0, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#a83343";
+        ctx.fillRect(-5, -4, 13, 8);
+        ctx.fillStyle = "#182b43";
+        ctx.fillRect(8, -3, 24, 6);
+        ctx.restore();
+      }
+      ctx.strokeStyle = "rgba(255,127,74,.8)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath(); ctx.arc(p.x, p.y, 82, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      const seconds = Math.ceil(squad.respawnTimer);
+      ctx.font = "900 48px Arial";
+      ctx.textAlign = "center";
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "#271619";
+      ctx.fillStyle = "#ffd166";
+      ctx.strokeText(seconds, p.x, p.y + 17);
+      ctx.fillText(seconds, p.x, p.y + 17);
+      ctx.font = "900 13px Arial";
+      ctx.strokeStyle = "#18232d";
+      ctx.fillStyle = "#ffe6b0";
+      ctx.strokeText("SQUAD ELIMINATED", p.x, p.y - 91);
+      ctx.fillText("SQUAD ELIMINATED", p.x, p.y - 91);
+      ctx.restore();
+      continue;
+    }
+    if (squad.revived) continue;
+    const center = worldToScreen(squad.x, squad.y);
+    const progress = clamp(squad.reviveProgress / 1, 0, 1);
+    ctx.save();
+    ctx.strokeStyle = "rgba(218,245,255,.35)";
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(center.x, center.y, 58, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "#74d6a0";
+    ctx.beginPath(); ctx.arc(center.x, center.y, 58, -Math.PI/2, -Math.PI/2 + Math.PI*2*progress); ctx.stroke();
+    // Three-tile blue refuge: a battered barricade perimeter with major gaps.
+    ctx.fillStyle = "rgba(55,137,177,.16)";
+    ctx.fillRect(squad.x - 120, squad.y - 120, 240, 240);
+    ctx.lineWidth = 13;
+    ctx.lineCap = "square";
+    ctx.strokeStyle = "#245b91";
+    for (const segment of [
+      [squad.x - 108, squad.y - 105, squad.x - 48, squad.y - 105],
+      [squad.x + 4, squad.y - 105, squad.x + 66, squad.y - 105],
+      [squad.x + 82, squad.y - 105, squad.x + 112, squad.y - 105],
+      [squad.x - 110, squad.y + 104, squad.x - 46, squad.y + 104],
+      [squad.x + 18, squad.y + 104, squad.x + 108, squad.y + 104],
+      [squad.x - 108, squad.y - 78, squad.x - 108, squad.y - 18],
+      [squad.x - 108, squad.y + 30, squad.x - 108, squad.y + 105],
+      [squad.x + 108, squad.y - 105, squad.x + 108, squad.y - 42],
+      [squad.x + 108, squad.y + 12, squad.x + 108, squad.y + 70]
+    ]) {
+      ctx.beginPath(); ctx.moveTo(segment[0], segment[1]); ctx.lineTo(segment[2], segment[3]); ctx.stroke();
+    }
+    // Jagged broken ends and fire make the refuge look actively destroyed.
+    ctx.strokeStyle = "#79b8e5";
+    ctx.lineWidth = 4;
+    for (const chunk of [[-82,-101], [73,-101], [-105,72], [105,-4], [42,103]]) {
+      ctx.beginPath();
+      ctx.moveTo(squad.x + chunk[0], squad.y + chunk[1]);
+      ctx.lineTo(squad.x + chunk[0] + 16, squad.y + chunk[1] - 18);
+      ctx.lineTo(squad.x + chunk[0] + 31, squad.y + chunk[1] + 2);
+      ctx.stroke();
+    }
+
+    // A readable army-camp centerpiece: the three survivors huddle around
+    // food and a real campfire instead of overlapping in one clump.
+    ctx.fillStyle = "rgba(22,25,29,.8)";
+    ctx.beginPath(); ctx.arc(squad.x, squad.y + 4, 42, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#5d4632";
+    ctx.fillRect(squad.x - 27, squad.y + 12, 54, 9);
+    ctx.fillRect(squad.x - 22, squad.y + 2, 44, 8);
+    for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+      ctx.fillStyle = "#9a9a88";
+      ctx.beginPath(); ctx.arc(squad.x + Math.cos(a) * 30, squad.y + Math.sin(a) * 24, 7, 0, Math.PI * 2); ctx.fill();
+    }
+    drawFire(squad.x, squad.y - 2, .72, squad.x * .06);
+    ctx.fillStyle = "#d7a24c";
+    ctx.beginPath(); ctx.arc(squad.x - 13, squad.y + 17, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(squad.x + 4, squad.y + 16, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#7d402b";
+    ctx.fillRect(squad.x + 12, squad.y + 11, 13, 9);
+
+    for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + i * Math.PI / 2;
+      const p = worldToScreen(squad.x + Math.cos(a) * 68, squad.y + Math.sin(a) * 58);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const fighting = i < 3;
+      ctx.rotate(a + Math.PI / 2);
+      ctx.globalAlpha = .9;
+      ctx.fillStyle = "#347fca";
+      ctx.fillRect(-21, fighting ? -13 : -9, 42, fighting ? 26 : 18);
+      ctx.fillStyle = "#c4e8ff";
+      ctx.beginPath(); ctx.arc(-24, fighting ? -4 : 0, 9, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#d85b62";
+      ctx.fillRect(-8, fighting ? -7 : -4, 16, 8);
+      if (fighting) {
+        ctx.fillStyle = "#d9f4ff";
+        ctx.fillRect(14, -3, 30, 6);
+        if (Math.sin(performance.now() / 100 + i * 2 + squad.x) > .25) {
+          ctx.fillStyle = "#ffe19a";
+          ctx.beginPath(); ctx.arc(48, 0, 7, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+    ctx.font = "900 14px Arial";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#15212c";
+    ctx.fillStyle = "#d9f7e7";
+    const campLabel = progress > 0 ? "RALLYING" : "ARMY CAMP · 4 SOLDIERS";
+    ctx.strokeText(campLabel, center.x, center.y - 72);
+    ctx.fillText(campLabel, center.x, center.y - 72);
+    ctx.restore();
+  }
+}
+
+function drawNpcAllies() {
+  for (const s of npcAllies) {
+    const p = worldToScreen(s.x, s.y);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(s.angle);
+    ctx.fillStyle = "#37c985";
+    ctx.beginPath(); ctx.arc(0, 0, s.r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#dcffe9";
+    ctx.fillRect(5, -3, 22, 6);
+    ctx.restore();
+    ctx.fillStyle = "#162332";
+    ctx.fillRect(p.x - 24, p.y - 29, 48, 7);
+    ctx.fillStyle = "#74e0a8";
+    ctx.fillRect(p.x - 24, p.y - 29, 48 * clamp(s.hp / s.maxHp, 0, 1), 7);
+    ctx.strokeStyle = "#e5fff0";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x - 24, p.y - 29, 48, 7);
+    if (s.damageFlash > 0) {
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#102033";
+      ctx.fillStyle = "#d9ffb0";
+      ctx.strokeText("ALLY " + s.id, p.x, p.y - 38);
+      ctx.fillText("ALLY " + s.id, p.x, p.y - 38);
+    }
+  }
+}
+
+function drawFire(x, y, scale = 1, phase = 0) {
+  const time = performance.now();
+  const wobble = Math.sin(time / 135 + phase) * 5 * scale;
+  ctx.save();
+  // Thick smoke makes the fire read as a burning structure instead of a dot.
+  ctx.globalAlpha = .34;
+  ctx.fillStyle = "#313842";
+  for (const puff of [[-11,-24,10],[3,-36,13],[16,-26,9]]) {
+    ctx.beginPath();
+    ctx.arc(x + puff[0] * scale + wobble * .35, y + puff[1] * scale, puff[2] * scale, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = .98;
+  ctx.fillStyle = "#ef4e2f";
+  ctx.beginPath();
+  ctx.moveTo(x - 15 * scale, y + 12 * scale);
+  ctx.quadraticCurveTo(x - 22 * scale, y - 3 * scale, x - 5 * scale, y - 18 * scale);
+  ctx.quadraticCurveTo(x - 4 * scale, y - 32 * scale, x + wobble, y - 43 * scale);
+  ctx.quadraticCurveTo(x + 13 * scale, y - 29 * scale, x + 8 * scale, y - 12 * scale);
+  ctx.quadraticCurveTo(x + 24 * scale, y - 25 * scale, x + 20 * scale, y + 1 * scale);
+  ctx.quadraticCurveTo(x + 18 * scale, y + 13 * scale, x, y + 16 * scale);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#ff9d35";
+  ctx.beginPath();
+  ctx.moveTo(x - 8 * scale, y + 10 * scale);
+  ctx.quadraticCurveTo(x - 13 * scale, y - 3 * scale, x - 2 * scale, y - 15 * scale);
+  ctx.quadraticCurveTo(x + 1 * scale, y - 25 * scale, x + 5 * scale, y - 29 * scale);
+  ctx.quadraticCurveTo(x + 14 * scale, y - 12 * scale, x + 8 * scale, y + 2 * scale);
+  ctx.quadraticCurveTo(x + 5 * scale, y + 10 * scale, x - 8 * scale, y + 10 * scale);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#ffe9a0";
+  ctx.beginPath(); ctx.arc(x + 1 * scale, y - 2 * scale, 5 * scale, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#ffd166";
+  for (const ember of [[-20,-22],[20,-17],[-14,-39],[17,-47]]) {
+    const ex = x + ember[0] * scale + Math.sin(time / 170 + ember[0]) * 5 * scale;
+    const ey = y + ember[1] * scale - ((time / 16 + ember[0] * 3) % (28 * scale));
+    ctx.fillRect(ex, ey, 4 * scale, 7 * scale);
+  }
+  ctx.restore();
+}
+
+function drawCity() {
+  const p = worldToScreen(city.x, city.y);
+  const pulse = .85 + Math.sin(performance.now() / 230) * .12;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  const destroyed = city.destroyed;
+  ctx.fillStyle = destroyed ? "rgba(75,75,85,.18)" : "rgba(230,78,59,.18)";
+  ctx.fillRect(-city.r, -city.r, city.r * 2, city.r * 2);
+  ctx.strokeStyle = destroyed ? "#8d8d9a" : "#ee7960";
+  ctx.lineWidth = 5;
+  ctx.strokeRect(-city.r, -city.r, city.r * 2, city.r * 2);
+  ctx.fillStyle = destroyed ? "#3b3b45" : "#34252b";
+  ctx.fillRect(-100, -88, 200, 176);
+  ctx.fillStyle = destroyed ? "#686875" : "#9c5650";
+  ctx.fillRect(-72, -60, 42, 42);
+  ctx.fillRect(30, -60, 42, 42);
+  ctx.fillRect(-72, 18, 42, 42);
+  ctx.fillRect(30, 18, 42, 42);
+  ctx.strokeStyle = destroyed ? "#aaaab8" : "#d06b63";
+  ctx.lineWidth = 3;
+  for (const x of [-72, 30]) {
+    for (const y of [-60, 18]) {
+      for (let bar = 0; bar < 3; bar++) {
+        ctx.beginPath();
+        ctx.moveTo(x + 9 + bar * 12, y);
+        ctx.lineTo(x + 9 + bar * 12, y + 42);
+        ctx.stroke();
+      }
+    }
+  }
+  if (!destroyed) {
+    // The Prison MG is mounted directly on the roof. It has no separate
+    // collision or health bar; the linked enemy entity only supplies firing.
+    const prisonGun = enemies.find(e => e.attachedToCity && !e.dead);
+    if (prisonGun) {
+      ctx.save();
+      ctx.translate(0, -124);
+      ctx.rotate(prisonGun.angle);
+      ctx.shadowColor = "#ff5b47";
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = "#4a2730";
+      ctx.fillRect(-38, -28, 76, 56);
+      ctx.fillStyle = "#b7444d";
+      ctx.fillRect(-29, -22, 58, 44);
+      ctx.fillStyle = "#26202a";
+      ctx.fillRect(10, -13, 82, 11);
+      ctx.fillRect(10, 3, 82, 11);
+      ctx.fillStyle = "#f58a55";
+      ctx.fillRect(-8, -8, 16, 16);
+      ctx.restore();
+      ctx.fillStyle = "#ffd0a0";
+      ctx.font = "900 11px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("PRISON MG", 0, -city.r - 32);
+    }
+    ctx.fillStyle = "#ffe0a0";
+    ctx.font = "900 13px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("PRISON HQ", 0, -city.r - 14);
+  } else {
+    ctx.fillStyle = "#d8d8e5";
+    ctx.font = "900 13px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("PRISON HQ DESTROYED", 0, -city.r - 14);
+  }
+  if (!destroyed) {
+    ctx.fillStyle = "#260f16";
+    ctx.fillRect(-105, city.r + 14, 210, 12);
+    ctx.fillStyle = "#ef5350";
+    ctx.fillRect(-105, city.r + 14, 210 * clamp(city.hp / city.maxHp, 0, 1), 12);
+    ctx.strokeStyle = "#ffd0c0";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-105, city.r + 14, 210, 12);
+  }
+  ctx.restore();
+}
+
+function drawHQ() {
+  const p = worldToScreen(hq.x,hq.y);
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.fillStyle = "#762c38";
+  ctx.fillRect(-150,-90,300,180);
+  ctx.fillStyle = "#a9424a";
+  ctx.fillRect(-90,-140,180,50);
+  ctx.fillStyle = "#ee5a5e";
+  ctx.fillRect(-22,-145,44,45);
+  ctx.fillStyle = "#381a25";
+  ctx.fillRect(-48,25,96,65);
+  ctx.fillStyle = "#e9b2a3";
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("RED HQ",0,8);
+  ctx.restore();
+
+  const ratio = clamp(hq.hp / hq.maxHp, 0, 1);
+  ctx.fillStyle = "#260f16";
+  ctx.fillRect(p.x-100,p.y+115,200,10);
+  ctx.fillStyle = "#ff6262";
+  ctx.fillRect(p.x-100,p.y+115,200*ratio,10);
+}
+
+function drawTent() {
+  const trainingCamp = nearestFriendlyCamp();
+  const upgraded = false;
+  for (const camp of friendlyCamps) {
+    const p = worldToScreen(camp.tent.x, camp.tent.y);
+    const nearThisTent = camp === trainingCamp && nearTent();
+    const hasWounded = army.some(s => !s.temporary && s.hp > 0 && s.hp < s.maxHp);
+    const pct = nearThisTent && regularArmyCount() < capacity
+      ? clamp(trainClock, 0, 1)
+      : nearThisTent && regularArmyCount() >= capacity && hasWounded
+        ? clamp(tentHealClock, 0, 1)
+        : 0;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.strokeStyle = "#65b9ff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 58, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(48,143,220,.22)";
+    ctx.beginPath(); ctx.arc(0, 0, 64, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#398dd1";
+    ctx.beginPath();
+    ctx.moveTo(-52, 36); ctx.lineTo(0, -46); ctx.lineTo(52, 36); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#b7e0ff";
+    ctx.fillRect(-5, -45, 10, 78);
+    ctx.fillStyle = "#244a73";
+    ctx.fillRect(-18, 10, 36, 26);
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#d9efff";
+    ctx.fillText("ARMY TENT", 0, 92);
+    ctx.restore();
+  }
+}
+
+function drawHospital() {
+  for (const camp of friendlyCamps) {
+    const p = worldToScreen(camp.hospital.x, camp.hospital.y);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.fillStyle = "rgba(53,151,96,.25)";
+    ctx.beginPath(); ctx.arc(0, 0, 64, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#33885d";
+    ctx.beginPath();
+    ctx.moveTo(-52, 36); ctx.lineTo(0, -46); ctx.lineTo(52, 36); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#dcffe9";
+    ctx.fillRect(-10, -27, 20, 60);
+    ctx.fillRect(-30, -8, 60, 20);
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#d8ffe8";
+    ctx.fillText("MEDICAL TENT", 0, 92);
+    ctx.restore();
+  }
+}
+
+function drawMines() {
+  for (const m of mines) {
+    if (m.triggered || (m.hidden && !m.armed)) continue;
+    const mtx = clamp(Math.floor(m.x / tileSize), 0, world.w / tileSize - 1);
+    const mty = clamp(Math.floor(m.y / tileSize), 0, world.h / tileSize - 1);
+    if (getTileOwner(mtx, mty) !== "red" && !m.armed) continue;
+    const p = worldToScreen(m.x,m.y);
+    if (m.armed) {
+      const warningRadius = 170;
+      const pulse = 1 + Math.sin(performance.now() / 95) * .035;
+      ctx.save();
+      ctx.fillStyle = "rgba(255,74,54,.18)";
+      ctx.beginPath(); ctx.arc(p.x, p.y, warningRadius * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(255,176,74,.96)";
+      ctx.lineWidth = 5;
+      ctx.setLineDash([16, 10]);
+      ctx.beginPath(); ctx.arc(p.x, p.y, warningRadius * pulse, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = "rgba(255,238,160,.8)";
+      ctx.lineWidth = 3;
+      const fuseDuration = 1.25;
+      ctx.beginPath(); ctx.arc(p.x, p.y, warningRadius * clamp(m.fuse / fuseDuration, 0, 1), 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+    const flashing = m.armed && Math.sin(performance.now() / 70) > 0;
+    ctx.fillStyle = flashing ? "#5b2025" : "#171b20";
+    ctx.beginPath(); ctx.arc(p.x,p.y,14,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = m.armed ? "#ffb04a" : "#e67b54";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(p.x,p.y,14,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle = m.armed ? "#fff0a0" : "#ff665c";
+    ctx.beginPath(); ctx.arc(p.x,p.y,3.5,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function drawCraters() {
+  for (const c of craters) {
+    const p = worldToScreen(c.x, c.y);
+    const fade = Number.isFinite(c.cleanupLife) ? clamp(c.cleanupLife / 12, 0, 1) : 1;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = "rgba(28,20,24,.72)";
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, c.radius, c.radius * .68, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(255,137,75,.4)";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, c.radius * .78, c.radius * .52, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawEnemyCorpses() {
+  for (const corpse of enemyCorpses) {
+    const p = worldToScreen(corpse.x, corpse.y);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    const fade = Number.isFinite(corpse.cleanupLife) ? clamp(corpse.cleanupLife / 12, 0, 1) : 1;
+    ctx.globalAlpha = .72 * fade;
+    ctx.rotate(corpse.angle || 0);
+
+    if (corpse.type === "soldier" || corpse.type === "elite") {
+      ctx.fillStyle = corpse.type === "elite" ? "#6e5128" : "#6f2935";
+      ctx.fillRect(-16, -7, 32, 14);
+      ctx.fillStyle = corpse.type === "elite" ? "#c58f38" : "#b74750";
+      ctx.beginPath(); ctx.arc(-18, 0, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#351821";
+      ctx.fillRect(-3, -3, 20, 6);
+    } else if (corpse.type === "tank") {
+      ctx.fillStyle = "#3b242b";
+      ctx.fillRect(-58, -36, 116, 72);
+      ctx.fillStyle = "#6f353d";
+      ctx.fillRect(-30, -24, 60, 48);
+      ctx.fillStyle = "#25171d";
+      ctx.fillRect(8, -7, 47, 14);
+      ctx.fillStyle = "#b84d52";
+      for (const side of [-1, 1]) ctx.fillRect(-54, side * 25, 108, 7);
+      for (const hole of corpse.holes) {
+        ctx.fillStyle = "#120d12";
+        ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r + 1, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (corpse.type === "artillery") {
+      ctx.fillStyle = "#3e252c";
+      ctx.fillRect(-34, -27, 68, 54);
+      ctx.fillStyle = "#9b3f48";
+      ctx.beginPath(); ctx.arc(-8, 4, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#24161c";
+      ctx.fillRect(-4, -4, 52, 8);
+      ctx.strokeStyle = "#ff9e45";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-27, -21); ctx.lineTo(27, 21); ctx.moveTo(27, -21); ctx.lineTo(-27, 21); ctx.stroke();
+    } else if (corpse.type === "machineGun") {
+      ctx.fillStyle = "#4a3928";
+      ctx.fillRect(-35, -24, 70, 48);
+      ctx.fillStyle = "#87622e";
+      ctx.fillRect(-26, -14, 52, 28);
+      ctx.fillStyle = "#211b18";
+      ctx.fillRect(-2, -3, 38, 6);
+      ctx.strokeStyle = "#e0a44b";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-35, -24, 70, 48);
+    } else if (corpse.type === "turret" || corpse.type === "tower") {
+      ctx.fillStyle = "#4a262e";
+      ctx.beginPath(); ctx.arc(0, 8, 28, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#813b45";
+      ctx.fillRect(-23, -8, 46, 16);
+      ctx.fillStyle = "#24161c";
+      ctx.fillRect(-8, -38, 16, 27);
+      ctx.rotate(-.8);
+      ctx.fillRect(2, -4, 40, 8);
+    } else if (corpse.type === "armyTent") {
+      ctx.fillStyle = "#54262f";
+      ctx.beginPath(); ctx.moveTo(-48, 27); ctx.lineTo(35, -20); ctx.lineTo(48, 27); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#c65c58";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(-42, 25); ctx.lineTo(42, -24); ctx.moveTo(-20, 28); ctx.lineTo(34, 24); ctx.stroke();
+    } else if (corpse.type === "barricade") {
+      ctx.fillStyle = "#552a31";
+      ctx.fillRect(-40, -40, 80, 80);
+      ctx.fillStyle = "#8e4945";
+      ctx.fillRect(-30, -7, 60, 14);
+      ctx.strokeStyle = "#e07b58";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-35, -30); ctx.lineTo(35, 30); ctx.moveTo(35, -30); ctx.lineTo(-35, 30); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawObjects() {
+  for (const e of enemies) {
+    if (e.dead || e.attachedToCity) continue;
+    const p = worldToScreen(e.x,e.y);
+    ctx.save();
+    ctx.translate(p.x,p.y);
+
+    if (e.type === "soldier" || e.type === "elite") {
+      ctx.fillStyle = e.type === "elite" ? "#e0a23d" : "#d95359";
+      ctx.beginPath(); ctx.arc(0,0,e.r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = e.type === "elite" ? "#70451c" : "#5e222c";
+      ctx.save();
+      ctx.rotate(e.angle);
+      ctx.fillRect(7,-3,e.type === "elite" ? 28 : 22,6);
+      ctx.restore();
+      if (e.type === "elite") {
+        ctx.fillStyle = "#fff0a0";
+        ctx.font = "900 10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("ELITE", 0, -25);
+      }
+    } else if (e.type === "tank") {
+      ctx.save();
+      ctx.rotate(e.angle);
+      if (e.isBoss) ctx.scale(1.25, 1.25);
+      ctx.fillStyle = "#833943";
+      ctx.fillRect(-56,-38,112,76);
+      ctx.fillStyle = "#b64d55";
+      ctx.fillRect(-23,-25,46,50);
+      ctx.fillStyle = "#401d28";
+      ctx.fillRect(16,-8,62,16);
+      for (const hole of e.holes) {
+        ctx.fillStyle = "#28151b";
+        ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#ee8262";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (e.type === "machineGun") {
+      // Machine-gun batteries are low, sandbagged emplacements with twin barrels.
+      ctx.fillStyle = "#75603a";
+      ctx.fillRect(-34, -25, 68, 50);
+      ctx.fillStyle = "#d5a34d";
+      ctx.fillRect(-27, -18, 54, 36);
+      ctx.fillStyle = "#3c3024";
+      ctx.save();
+      ctx.rotate(e.angle);
+      ctx.fillRect(7, -9, 48, 7);
+      ctx.fillRect(7, 2, 48, 7);
+      ctx.restore();
+      ctx.fillStyle = "#ffe0a0";
+      ctx.font = "900 10px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(e.linkedCity ? "PRISON MG · INDESTRUCTIBLE" : "MG BATTERY", 0, 42);
+    } else if (e.type === "tower" || e.type === "turret") {
+      ctx.fillStyle = e.type === "turret" ? "#71313e" : "#9e3f49";
+      ctx.beginPath(); ctx.arc(0, 0, e.r - 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = e.type === "turret" ? "#d45a60" : "#d66b69";
+      ctx.fillRect(-10,-31,20,25);
+      if (e.type === "turret") {
+        for (const hole of e.holes) {
+          ctx.fillStyle = "#28151b";
+          ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "#ee8262";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = "#3d1d25";
+      ctx.save();
+      ctx.rotate(e.angle);
+      ctx.fillRect(8,-5,e.type === "turret" ? 42 : 32,10);
+      ctx.restore();
+    } else if (e.type === "artillery") {
+      ctx.fillStyle = "#71313e";
+      ctx.fillRect(-30,-25,60,50);
+      ctx.fillStyle = "#b84b55";
+      ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#3d1d25";
+      ctx.save();
+      ctx.rotate(e.angle);
+      ctx.fillRect(7,-7,48,14);
+      ctx.restore();
+      ctx.fillStyle = "#ffd08a";
+      ctx.font = "900 10px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("ARTILLERY", 0, 41);
+    } else if (e.type === "armyTent") {
+      ctx.fillStyle = "rgba(173,54,67,.28)";
+      ctx.beginPath(); ctx.arc(0, 0, 58, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#8f3542";
+      ctx.beginPath();
+      ctx.moveTo(-45, 28); ctx.lineTo(0, -42); ctx.lineTo(45, 28); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ef7775";
+      ctx.fillRect(-5, -40, 10, 68);
+      ctx.fillStyle = "#401d28";
+      ctx.fillRect(-16, 7, 32, 22);
+      ctx.fillStyle = "#ffe0a0";
+      ctx.font = "900 11px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("ARMY TENT", 0, 68);
+    } else if (e.type === "barricade") {
+      // One barricade occupies one 80x80 map tile and is visibly spiked.
+      ctx.fillStyle = "#7d313b";
+      ctx.fillRect(-40,-40,80,80);
+      ctx.fillStyle = "#c95750";
+      ctx.fillRect(-32,-32,64,64);
+      ctx.fillStyle = "#f0a05e";
+      for (const side of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(side * 32, -22); ctx.lineTo(side * 47, -13); ctx.lineTo(side * 32, -4);
+        ctx.moveTo(side * 32, 4); ctx.lineTo(side * 47, 13); ctx.lineTo(side * 32, 22);
+        ctx.fill();
+      }
+      ctx.strokeStyle = "#351821";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(-40,-40,80,80);
+      for (const hole of e.holes) {
+        ctx.fillStyle = "#28151b";
+        ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#ee8262";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = "#260f16";
+    ctx.fillRect(-e.r,-e.r-11,e.r*2,6);
+    ctx.fillStyle = e.type === "barricade" ? "#ffb05f" : "#ff7777";
+    ctx.fillRect(-e.r,-e.r-11,e.r*2*clamp(e.hp/e.maxHp,0,1),6);
+    ctx.restore();
+  }
+}
+
+function drawArmy() {
+  for (const s of army) {
+    const p = worldToScreen(s.x,s.y);
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(s.angle);
+    ctx.fillStyle = s.elite ? "#d5a43e" : "#3f9ae8";
+    ctx.beginPath(); ctx.arc(0,0,s.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = s.elite ? "#fff0a0" : "#d3edff";
+    ctx.fillRect(5,-3,16,6);
+    ctx.restore();
+
+    // Large, readable health bar and soldier number.
+    ctx.fillStyle = "#162332";
+    ctx.fillRect(p.x-22,p.y-29,44,7);
+    ctx.fillStyle = "#70c4ff";
+    ctx.fillRect(p.x-22,p.y-29,44*clamp(s.hp/s.maxHp,0,1),7);
+    ctx.strokeStyle = "#d7efff";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(p.x-22,p.y-29,44,7);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "center";
+    ctx.strokeStyle = "#102033";
+    ctx.lineWidth = 3;
+    const soldierLabel = (s.elite ? "E" : "S") + s.id;
+    ctx.strokeText(soldierLabel, p.x, p.y + 5);
+    ctx.fillText(soldierLabel, p.x, p.y + 5);
+
+    if (s.damageFlash > 0) {
+      ctx.fillStyle = "#ffdf75";
+      ctx.font = "bold 12px Arial";
+      ctx.strokeStyle = "#3b1d1d";
+      ctx.lineWidth = 3;
+      ctx.strokeText((s.elite ? "ELITE " : "SOLDIER ") + s.id, p.x, p.y - 38);
+      ctx.fillText((s.elite ? "ELITE " : "SOLDIER ") + s.id, p.x, p.y - 38);
+    }
+  }
+
+  // Fallen soldiers remain on the battlefield, but they are never returned to the squad.
+  for (const s of fallenSoldiers) {
+    const p = worldToScreen(s.x, s.y);
+    ctx.save();
+    ctx.globalAlpha = .82;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(s.angle);
+    ctx.fillStyle = "#28699e";
+    ctx.fillRect(-15, -7, 30, 14);
+    ctx.fillStyle = "#91c8eb";
+    ctx.beginPath(); ctx.arc(-17, 0, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#b93f4d";
+    ctx.fillRect(-7, -4, 10, 8);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+}
+
+function drawPlayer() {
+  const p = worldToScreen(player.x,player.y);
+  const aim = getAim();
+  const a = Math.atan2(aim.y-player.y, aim.x-player.x);
+  const wipeSprinting = squadWipeBoost > 0 && isSprinting();
+
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.rotate(a);
+  if (isSprinting() || squadWipeBoost > 0) {
+    // Animated speed VFX: green for sprinting, yellow for a wiped squad.
+    const sprinting = isSprinting();
+    const lineA = wipeSprinting ? "#f1ffff" : sprinting ? "#d9ffb0" : "#fff0a0";
+    const lineB = wipeSprinting ? "#83d8ff" : sprinting ? "#8cff9c" : "#ffd45f";
+    const t = performance.now() / 1000;
+    ctx.lineCap = "round";
+    ctx.shadowColor = lineB;
+    ctx.shadowBlur = 12;
+    for (let i = 0; i < 7; i++) {
+      const phase = (t * 2.8 + i * .19) % 1;
+      const lane = (i - 3) * 7;
+      const length = 16 + phase * 42;
+      ctx.globalAlpha = .25 + (1 - phase) * .75;
+      ctx.strokeStyle = i % 2 ? lineA : lineB;
+      ctx.lineWidth = 2 + (1 - phase) * 3;
+      ctx.beginPath();
+      ctx.moveTo(-22 - phase * 18, lane);
+      ctx.lineTo(-22 - phase * 18 - length, lane + (i - 3) * phase * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+  if (wipeSprinting) {
+    const pulse = 1 + Math.sin(performance.now() / 85) * .08;
+    ctx.strokeStyle = "#8edfff";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "#4bc9ff";
+    ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.arc(0, 0, 31 * pulse, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  ctx.fillStyle = player.invuln > 0 ? "#d9f2ff" : "#59adff";
+  ctx.beginPath(); ctx.arc(0,0,player.r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#d9f2ff";
+  ctx.fillRect(9,-4,28,8);
+  ctx.restore();
+
+  if (wipeSprinting) {
+    ctx.save();
+    ctx.font = "900 11px Arial";
+    ctx.textAlign = "center";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#102436";
+    ctx.fillStyle = "#b9efff";
+    ctx.strokeText("WIPE SPRINT", p.x, p.y - 36);
+    ctx.fillText("WIPE SPRINT", p.x, p.y - 36);
+    ctx.restore();
+  }
+
+  ctx.strokeStyle = "rgba(102,190,255,.25)";
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(p.x,p.y,27,0,Math.PI*2); ctx.stroke();
+
+  // Compact health bar stays directly above the player for quick readability.
+  const barW = 54;
+  const barH = 7;
+  ctx.fillStyle = "rgba(18,12,18,.9)";
+  ctx.fillRect(p.x - barW / 2, p.y - 38, barW, barH);
+  ctx.fillStyle = player.hp / player.maxHp > .45 ? "#55d879" : "#ff5d62";
+  ctx.fillRect(p.x - barW / 2, p.y - 38, barW * clamp(player.hp / player.maxHp, 0, 1), barH);
+  ctx.strokeStyle = "#d9efff";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(p.x - barW / 2, p.y - 38, barW, barH);
+}
+
+function drawBullets() {
+  for (const b of bullets) {
+    const p = worldToScreen(b.x,b.y);
+    if (b.rocket) {
+      const tail = worldToScreen(b.x - b.vx * .1, b.y - b.vy * .1);
+      ctx.strokeStyle = "rgba(232,232,218,.72)";
+      ctx.lineWidth = 7;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.fillStyle = "#f3b24e";
+      ctx.beginPath(); ctx.arc(p.x,p.y,8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(245,245,235,.55)";
+      ctx.beginPath(); ctx.arc(tail.x,tail.y,6,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = b.owner === "player" ? "#ffe28d" : "#ff8d8d";
+      ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+    }
+  }
+  for (const b of enemyBullets) {
+    const p = worldToScreen(b.x,b.y);
+    if (b.artillery) {
+      const tail = worldToScreen(b.prevX ?? b.x - b.vx * .08, b.prevY ?? b.y - b.vy * .08);
+      ctx.strokeStyle = "rgba(70,70,70,.5)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.fillStyle = "#5b3030";
+      ctx.beginPath(); ctx.arc(p.x,p.y,11,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#ffb15a";
+      ctx.beginPath(); ctx.arc(p.x - 3,p.y - 3,4,0,Math.PI*2); ctx.fill();
+    } else if (b.rocket) {
+      const tail = worldToScreen(b.x - b.vx * .1, b.y - b.vy * .1);
+      ctx.strokeStyle = "rgba(232,232,218,.7)";
+      ctx.lineWidth = 7;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+    ctx.fillStyle = b.rocket ? "#f07845" : b.tankShell ? "#ff9e45" : "#ff7777";
+    ctx.beginPath(); ctx.arc(p.x,p.y,b.radius || 4,0,Math.PI*2); ctx.fill();
+    if (b.tankShell || b.rocket) {
+      ctx.strokeStyle = "#ffe0a0";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+}
+
+function drawEffects() {
+  for (const e of explosions) {
+    const s = worldToScreen(e.x,e.y);
+    const progress = 1 - e.life / e.maxLife;
+    ctx.globalAlpha = clamp(e.life * 3, 0, 1);
+    ctx.strokeStyle = e.color;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, e.radius * (.35 + progress), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "#fff0a0";
+    ctx.beginPath(); ctx.arc(s.x,s.y,e.radius * .35 * (1-progress),0,Math.PI*2); ctx.fill();
+    e.life -= .016;
+  }
+  ctx.globalAlpha = 1;
+  explosions = explosions.filter(e => e.life > 0);
+
+  for (const shard of shards) {
+    const s = worldToScreen(shard.x, shard.y);
+    const speed = Math.hypot(shard.vx, shard.vy) || 1;
+    const tail = 18;
+    ctx.globalAlpha = clamp(shard.life * 3, 0, 1);
+    ctx.strokeStyle = shard.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(s.x - (shard.vx / speed) * tail, s.y - (shard.vy / speed) * tail);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  for (const p of particles) {
+    const s = worldToScreen(p.x,p.y);
+    ctx.globalAlpha = clamp(p.life*2,0,1);
+    ctx.fillStyle = p.color;
+    if (p.shard) {
+      const speed = Math.hypot(p.vx || 0, p.vy || 0) || 1;
+      const tail = Math.min(22, p.size * 2.8);
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = Math.max(2, p.size * .55);
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - (p.vx / speed) * tail, s.y - (p.vy / speed) * tail);
+      ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(s.x,s.y,p.size,0,Math.PI*2); ctx.fill();
+    }
+    p.x += (p.vx || 0) * .016;
+    p.y += (p.vy || 0) * .016;
+    p.life -= .016;
+  }
+  ctx.globalAlpha = 1;
+  particles = particles.filter(p => p.life > 0);
+
+  for (const t of texts) {
+    const s = worldToScreen(t.x,t.y);
+    ctx.globalAlpha = clamp(t.life,0,1);
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = t.color;
+    ctx.fillText(t.text,s.x,s.y);
+    t.y -= .4;
+    t.life -= .016;
+  }
+  ctx.globalAlpha = 1;
+  texts = texts.filter(t => t.life > 0);
+}
+
+function drawMinimap() {
+  const mw = mini.width = 150 * dpr;
+  const mh = mini.height = 220 * dpr;
+  mctx.setTransform(dpr,0,0,dpr,0,0);
+  mctx.clearRect(0,0,150,220);
+  mctx.fillStyle = "#1e2933";
+  mctx.fillRect(0,0,150,220);
+
+  const bounds = minimapBounds();
+  const levelHeight = bounds.maxY - bounds.minY;
+  const miniTileW = 150 / (world.w / tileSize);
+  const miniTileH = 220 / (levelHeight / tileSize);
+  const firstTy = Math.floor(bounds.minY / tileSize);
+  const lastTy = Math.ceil(bounds.maxY / tileSize);
+  for (let ty = firstTy; ty < lastTy; ty++) {
+    for (let tx = 0; tx < world.w / tileSize; tx++) {
+      mctx.fillStyle = getTileOwner(tx, ty) === "red" ? "#79343d" : "#28534d";
+      mctx.fillRect(
+        tx * miniTileW,
+        (ty * tileSize - bounds.minY) / levelHeight * 220,
+        miniTileW + .5,
+        miniTileH + .5
+      );
+    }
+  }
+
+  for (const e of enemies) {
+    if (!e.dead && !e.attachedToCity && visibleToPlayer(e) && e.y >= bounds.minY && e.y < bounds.maxY) {
+      mctx.fillStyle = "#ee5a5a";
+      mctx.fillRect(e.x/world.w*150-1,(e.y-bounds.minY)/levelHeight*220-1,3,3);
+    }
+  }
+  mctx.fillStyle = city.destroyed ? "#d7d7e5" : "#ff6b62";
+  mctx.fillRect(city.x/world.w*150-3,(city.y-bounds.minY)/levelHeight*220-3,6,6);
+  mctx.fillStyle = "#4caeff";
+  mctx.beginPath();
+  mctx.arc(player.x/world.w*150,(player.y-bounds.minY)/levelHeight*220,4,0,Math.PI*2);
+  mctx.fill();
+  mctx.strokeStyle = "#fff";
+  mctx.strokeRect(
+    camera.x/world.w*150,
+    (camera.y-bounds.minY)/levelHeight*220,
+    (W/zoom)/world.w*150,
+    (H/zoom)/levelHeight*220
+  );
+}
+
+function minimapBounds() {
+  const level = levels[currentLevel - 1] || levels[0];
+  // Level 1 includes the approach from the starting camp to the prison.
+  if (currentLevel === 1) return {minY: level.minY, maxY: world.h};
+  return {minY: level.minY, maxY: level.maxY};
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  drawWorld();
+  drawMinimap();
+
+  document.getElementById("restartBtn").classList.toggle("show", gameOver || victory);
+
+  if (gameOver || victory) {
+    ctx.fillStyle = "rgba(5,8,12,.62)";
+    ctx.fillRect(0,0,W,H);
+    ctx.textAlign = "center";
+    ctx.font = "800 38px Arial";
+    ctx.fillStyle = victory ? "#72c5ff" : "#ff6d6d";
+    ctx.fillText(victory && city.destroyed ? "LEVEL 1 COMPLETE" : victory ? "BLUE WINS" : "BLUE FORCE ELIMINATED", W/2,H/2-18);
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.fillText(victory && city.destroyed ? "Prison HQ destroyed — Level 2 coming later." : victory ? "The Red HQ has fallen." : "Press R to restart or use RESTART", W/2,H/2+20);
+  }
+}
+
+function loop(now) {
+  const dt = Math.min((now-last)/1000, .035);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
